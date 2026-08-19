@@ -187,7 +187,7 @@ export default function InteractiveQuoteView({ quoteId }: { quoteId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          quoteId,
+          quoteId: quoteId || window.location.pathname.split('/')[2],
           amount: totalAmount,
           title: 'Sviluppo piattaforma web e integrazione dashboard',
         }),
