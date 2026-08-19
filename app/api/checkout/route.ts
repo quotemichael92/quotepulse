@@ -27,9 +27,9 @@ export async function POST(req: Request) {
       ],
       mode: 'payment',
       customer_email: clientEmail && clientEmail.includes('@') ? clientEmail : undefined,
-      success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/p/${quoteId}`,
-    });
+    success_url: `${origin}/p/${quoteId}/success?session_id=` + '{CHECKOUT_SESSION_ID}',
+cancel_url: `${origin}/p/${quoteId}`,
+    
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
