@@ -7,7 +7,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const { quoteId, clientEmail, amount } = await req.json();
+    const body = await req.json();
+    const { clientEmail, amount } = body;
+    
+    // Recupera e pulisce l'ID in modo sicuro: se manca, usa un fallback
+    const quoteId = body.quoteId && body.quoteId !== 'undefined' ? body.quoteId : 'default';
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL;
 
