@@ -1,5 +1,6 @@
-import InteractiveQuoteView from './InteractiveQuoteView'
+import InteractiveQuoteView from './InteractiveQuoteView';
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <InteractiveQuoteView quoteId={params.id} />
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <InteractiveQuoteView quoteId={id} />;
 }
