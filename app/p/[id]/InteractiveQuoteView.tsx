@@ -11,8 +11,8 @@ interface Option {
   days: number
 }
 
-export default function InteractiveQuoteView({ params, quoteId: propQuoteId }: { params?: { id: string }, quoteId?: string }) {
-  const quoteId = propQuoteId || params?.id;
+export default function InteractiveQuoteView({ quoteId }: { quoteId: string }) {
+  
 
   // 1. TRACCIAMENTO AUTOMATICO APERTURA
   useEffect(() => {
