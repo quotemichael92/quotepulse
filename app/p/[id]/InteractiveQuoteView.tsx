@@ -11,7 +11,9 @@ interface Option {
   days: number
 }
 
-export default function InteractiveQuoteView({ quoteId }: { quoteId: string }) {
+export default function InteractiveQuoteView(props: any) {
+  // Estrae l'ID in modo sicuro sia dalle props che direttamente dall'URL del browser
+  const quoteId = props.quoteId || (typeof window !== 'undefined' ? window.location.pathname.split('/')[2] : '');
   
 
   // 1. TRACCIAMENTO AUTOMATICO APERTURA
