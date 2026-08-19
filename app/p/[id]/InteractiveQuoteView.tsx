@@ -11,8 +11,8 @@ interface Option {
   days: number
 }
 
-export default function InteractiveQuoteView({ params }: { params: { id: string } }) {
-  const quoteId = params?.id
+export default function InteractiveQuoteView({ params, quoteId: propQuoteId }: { params?: { id: string }, quoteId?: string }) {
+  const quoteId = propQuoteId || params?.id;
 
   // 1. TRACCIAMENTO AUTOMATICO APERTURA
   useEffect(() => {
@@ -176,9 +176,9 @@ export default function InteractiveQuoteView({ params }: { params: { id: string 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          quoteId,
           signatureData,
           selectedOptions,
-          totalAmount,
           clientNotes,
         }),
       }).catch(() => null)
