@@ -164,49 +164,37 @@ export default function InteractiveQuoteView({ quoteId }: { quoteId: string }) {
   }
 
   // PAGAMENTO E INVIO
-  const handleAcceptAndPay = async () => {
-    if (!hasSignature || isSubmitting) return
-    setIsSubmitting(true)
+ const handleAcceptAndPay = async () => {
+  if (hasSignature || isSubmitting) return;
+  setIsSubmitting(true);
 
-    const canvas = canvasRef.current
-    const signatureData = canvas ? canvas.toDataURL() : ''
+  try {
+    const currentPathId = window.location.pathname.split('/')[2];
 
-    try {
-      await fetch(`/api/quotes/${quoteId}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteId,
-          signatureData,
-          selectedOptions,
-          clientNotes,
-        }),
-      }).catch(() => null)
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteId: currentPathId || quoteId,
+        amount: totalAmount,
+        title: 'Sviluppo piattaforma web e integrazione dashboard',
+      }),
+    });
 
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteId: String(quoteId),
-          amount: totalAmount,
-          title: 'Sviluppo piattaforma web e integrazione dashboard',
-        }),
-      })
+    const data = await res.json();
 
-      const data = await res.json()
-
-      if (data?.url) {
-        window.location.href = data.url
-      } else {
-        alert(data?.error || 'Impossibile avviare il pagamento con Stripe.')
-        setIsSubmitting(false)
-      }
-    } catch (err: any) {
-      alert(err?.message || 'Si è verificato un errore.')
-      setIsSubmitting(false)
+    if (data?.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || 'Errore durante la creazione del pagamento');
+      setIsSubmitting(false);
     }
+  } catch (err: any) {
+    console.error('Errore:', err);
+    alert('Si è verificato un errore.');
+    setIsSubmitting(false);
   }
-
+};
   return (
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
