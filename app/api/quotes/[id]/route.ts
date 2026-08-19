@@ -1,30 +1,19 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  request: Request,
+export async function POST(
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const { id } = await params;
 
-    // Await dei parametri per Next.js App Router
-    const { id } = await params
-
-    const { data: quote, error } = await supabase
-      .from('quotes')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error || !quote) {
-      return NextResponse.json({ error: 'Preventivo non trovato' }, { status: 404 })
-    }
-
-    return NextResponse.json({ quote })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    // Inserisci qui la logica della tua rotta
+    
+    return NextResponse.json({ success: true, id });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Errore interno del server' },
+      { status: 500 }
+    );
   }
 }

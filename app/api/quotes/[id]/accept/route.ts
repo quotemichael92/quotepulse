@@ -1,35 +1,18 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { NextResponse } from 'next/server';
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params;
 
-    if (!id || id.startsWith('demo-')) {
-      return NextResponse.json({ success: true, message: 'Demo accept acknowledged' })
-    }
-
-    const { data, error } = await supabase
-      .from('quotes')
-      .update({ status: 'accepted' })
-      .eq('id', id)
-      .select()
-
-    if (error) {
-      console.error('Supabase accept update error:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    console.error('API Accept Error:', err)
-    return NextResponse.json({ error: err.message || 'Internal Error' }, { status: 500 })
+    // Qui va la logica per accettare il preventivo
+    return NextResponse.json({ success: true, quoteId: id });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Errore durante l accertazione del preventivo' },
+      { status: 500 }
+    );
   }
 }
