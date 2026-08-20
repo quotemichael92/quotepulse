@@ -23,8 +23,8 @@ interface InteractiveQuoteViewProps {
 }
 
 export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData }: InteractiveQuoteViewProps) {
-  // 1. Estrazione immediata e sicura dell'ID dall'URL o dalle props
-  const [quoteId] = useState<string>(() => {
+  // 1. Estrazione immediata e sicura dell'ID dall'URL o dalle props (Corretto per Supabase)
+  const [quoteId, setQuoteId] = useState<string>(() => {
     if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null') {
       return propQuoteId
     }
@@ -45,13 +45,23 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return 'default'
   })
 
+  // Sincronizzazione prop se cambia
+  useEffect(() => {
+    if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null') {
+      setQuoteId(propQuoteId)
+    }
+  }, [propQuoteId])
+
   // Stato per i dati reali caricati dal database
   const [quoteData, setQuoteData] = useState<any>(initialData || null)
   const [loading, setLoading] = useState(!initialData)
 
   // Fetch dei dati reali del preventivo basati sull'ID
   useEffect(() => {
-    if (!quoteId || quoteId === 'default' || initialData) return
+    if (!quoteId || quoteId === 'default' || initialData) {
+      if (initialData) setLoading(false)
+      return
+    }
 
     const fetchQuote = async () => {
       try {
@@ -99,7 +109,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return () => clearInterval(timer)
   }, [])
 
-  // 4. Configurazione Dati Reali dal Database (senza fallback fittizi)
+  // 4. Configurazione Dati Reali dal Database (con fallback di sicurezza se vuoti)
   const clientName = quoteData?.client_name || 'Cliente'
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
@@ -107,8 +117,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const basePrice = Number(quoteData?.base_price ?? 0)
   const baseDays = Number(quoteData?.base_days ?? 10)
 
-  // Opzioni gestite dinamicamente o da configurazione
-  const options: Option[] = initialData?.options ?? [
+  // Opzioni gestite dinamicamente dal database o fallback
+  const options: Option[] = quoteData?.options ?? initialData?.options ?? [
     {
       id: 'opt-1',
       title: 'Integrazione Stripe Checkout',
@@ -136,6 +146,13 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const [budgetLimit, setBudgetLimit] = useState(basePrice > 0 ? basePrice + 500 : 2000)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Aggiorna il budget limit se cambia il prezzo base dal DB
+  useEffect(() => {
+    if (basePrice > 0) {
+      setBudgetLimit(basePrice + 500)
+    }
+  }, [basePrice])
 
   const toggleOption = (id: string) => {
     setSelectedOptions((prev) =>
