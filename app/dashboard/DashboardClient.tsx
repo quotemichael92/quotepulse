@@ -204,7 +204,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {quotes.map((q) => {
-                const quoteId = q.id || q._id
+                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid
                 return (
                   <div key={quoteId} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
