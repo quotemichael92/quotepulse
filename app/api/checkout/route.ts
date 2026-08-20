@@ -8,12 +8,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientEmail, amount } = body;
+    const { clientEmail, amount, quoteId } = body;
     
-    // Controllo ferro-e-fuoco: se manca, è vuoto o è la stringa "undefined", usa un fallback sicuro
-    let quoteId = body.quoteId;
-    if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '') {
-      quoteId = 'default';
+    // CONTROLLO RIGIDO: Se il quoteId è vuoto, non valido o "undefined", blocchiamo tutto
+    if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '' || quoteId === 'default') {
+      return NextResponse.json(
+        { error: 'ID preventivo non valido o mancante. Impossibile procedere con il pagamento.' },
+        { status: 400 }
+      );
     }
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL;
