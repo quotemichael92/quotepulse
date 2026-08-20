@@ -45,6 +45,30 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return 'default'
   })
 
+  // Stato per i dati reali caricati dal database
+  const [quoteData, setQuoteData] = useState<any>(initialData || null)
+  const [loading, setLoading] = useState(!initialData)
+
+  // Fetch dei dati reali del preventivo basati sull'ID
+  useEffect(() => {
+    if (!quoteId || quoteId === 'default' || initialData) return
+
+    const fetchQuote = async () => {
+      try {
+        const res = await fetch(`/api/quotes/${quoteId}`)
+        const data = await res.json()
+        if (data.success && data.quote) {
+          setQuoteData(data.quote)
+        }
+      } catch (err) {
+        console.error('Errore caricamento preventivo:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchQuote()
+  }, [quoteId, initialData])
+
   // 2. Tracciamento apertura preventivo
   useEffect(() => {
     if (!quoteId || quoteId === 'default') return
@@ -60,7 +84,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   }, [quoteId])
 
   // 3. Timer FOMO
-  const [timeLeft, setTimeLeft] = useState({ hours: initialData?.fomoHours || 47, minutes: 59, seconds: 59 })
+  const fomoHoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 47
+  const [timeLeft, setTimeLeft] = useState({ hours: fomoHoursFromDb, minutes: 59, seconds: 59 })
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,9 +99,11 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return () => clearInterval(timer)
   }, [])
 
-  // 4. Configurazione Dati Preventivo
-  const basePrice = initialData?.basePrice ?? 1550
-  const baseDays = initialData?.baseDays ?? 12
+  // 4. Configurazione Dati Preventivo (Dati dal DB o fallback)
+  const title = quoteData?.title || quoteData?.client_name ? `Proposta per ${quoteData.client_name}` : 'Sviluppo piattaforma web professionale & Integrazione Dashboard.'
+  const basePrice = Number(quoteData?.base_price ?? quoteData?.price ?? initialData?.basePrice ?? 1550)
+  const baseDays = Number(quoteData?.base_days ?? quoteData?.days ?? initialData?.baseDays ?? 12)
+
   const options: Option[] = initialData?.options ?? [
     {
       id: 'opt-1',
@@ -210,7 +237,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           amount: totalAmount,
           selectedOptions,
           clientNotes,
-          title: initialData?.title || 'Sviluppo piattaforma web e integrazione dashboard',
+          title,
         }),
       })
 
@@ -254,7 +281,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                 Preventivo Interattivo
               </h1>
               <p className="text-slate-300 text-sm mt-1">
-                {initialData?.title || 'Sviluppo piattaforma web professionale & Integrazione Dashboard.'}
+                {title}
               </p>
             </div>
             <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs px-3 py-1 rounded-full font-semibold shrink-0">
