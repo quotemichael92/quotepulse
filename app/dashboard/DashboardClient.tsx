@@ -2,14 +2,35 @@
 
 import { useState } from 'react'
 
-export default function DashboardClient({ initialQuotes }: { initialQuotes: any[] }) {
-  const [quotes, setQuotes] = useState<any[]>(initialQuotes)
+interface Option {
+  title: string
+  price: string
+}
+
+interface Quote {
+  id?: string
+  _id?: string
+  quote_id?: string
+  slug?: string
+  uuid?: string
+  client_name: string
+  client_email: string
+  base_price: number
+  status?: string
+}
+
+interface DashboardClientProps {
+  initialQuotes: Quote[]
+}
+
+export default function DashboardClient({ initialQuotes }: DashboardClientProps) {
+  const [quotes, setQuotes] = useState<Quote[]>(initialQuotes)
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [description, setDescription] = useState('')
   const [basePrice, setBasePrice] = useState('')
   const [fomoHours, setFomoHours] = useState('')
-  const [options, setOptions] = useState([{ title: '', price: '' }])
+  const [options, setOptions] = useState<Option[]>([{ title: '', price: '' }])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -31,7 +52,10 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
     e.preventDefault()
     setLoading(true)
     try {
-      const validOptions = options.filter(opt => opt.title.trim() !== '' && opt.price !== '')
+      const validOptions = options
+        .filter(opt => opt.title.trim() !== '' && opt.price !== '')
+        .map(opt => ({ title: opt.title.trim(), price: Number(opt.price) }))
+
       const res = await fetch('/api/quotes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,6 +149,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
                 <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">PREZZO BASE (€)</label>
                 <input
                   type="number"
+                  step="0.01"
                   required
                   value={basePrice}
                   onChange={(e) => setBasePrice(e.target.value)}
@@ -152,13 +177,14 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
                 <div key={index} className="flex gap-2 mb-2 items-center">
                   <input
                     type="text"
-                    placeholder="Es. Manutenzione Annuale"
+                    placeholder="Es. Seduta Extra / Servizio Aggiuntivo"
                     value={opt.title}
                     onChange={(e) => handleOptionChange(index, 'title', e.target.value)}
                     className="flex-1 bg-slate-800 border border-slate-700 text-white p-2.5 rounded-lg text-xs focus:outline-none focus:border-slate-500"
                   />
                   <input
                     type="number"
+                    step="0.01"
                     placeholder="€ Prezzo"
                     value={opt.price}
                     onChange={(e) => handleOptionChange(index, 'price', e.target.value)}
@@ -203,8 +229,8 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
             <p className="text-xs text-slate-500 italic">Nessun preventivo ancora creato.</p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {quotes.map((q) => {
-                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid || (q.client_name ? q.client_name.toLowerCase().replace(/\s+/g, '-') : 'preventivo');
+              {quotes.map((q, idx) => {
+                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid || `quote-${idx}`;
                 return (
                   <div key={quoteId} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
                     <div className="flex items-center justify-between">

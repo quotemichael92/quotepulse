@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 
 interface Option {
@@ -11,15 +11,36 @@ interface Option {
   days: number
 }
 
-export default function InteractiveQuoteView(props: any) {
-  // Estrae l'ID in modo sicuro sia dalle props che direttamente dall'URL del browser
-  const rawId = props.quoteId || (typeof window !== 'undefined' ? window.location.pathname.split('/')[2] : '');
-  const quoteId = (!rawId || rawId === 'undefined' || rawId === 'null') ? 'default' : rawId;
-  
+interface InteractiveQuoteViewProps {
+  quoteId?: string
+  initialData?: {
+    title?: string
+    basePrice?: number
+    baseDays?: number
+    options?: Option[]
+    fomoHours?: number
+  }
+}
 
-  // 1. TRACCIAMENTO AUTOMATICO APERTURA
+export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData }: InteractiveQuoteViewProps) {
+  // 1. Estrazione sicura dell'ID
+  const [quoteId, setQuoteId] = useState<string>('default')
+
   useEffect(() => {
-    if (!quoteId) return
+    if (propQuoteId) {
+      setQuoteId(propQuoteId)
+    } else if (typeof window !== 'undefined') {
+      const pathId = window.location.pathname.split('/')[2]
+      if (pathId && pathId !== 'undefined' && pathId !== 'null') {
+        setQuoteId(pathId)
+      }
+    }
+  }, [propQuoteId])
+
+  // 2. Tracciamento apertura
+  useEffect(() => {
+    if (!quoteId || quoteId === 'default') return
+    
     const markAsViewed = async () => {
       try {
         await fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' })
@@ -30,8 +51,8 @@ export default function InteractiveQuoteView(props: any) {
     markAsViewed()
   }, [quoteId])
 
-  // 2. TIMER FOMO
-  const [timeLeft, setTimeLeft] = useState({ hours: 47, minutes: 59, seconds: 59 })
+  // 3. Timer FOMO
+  const [timeLeft, setTimeLeft] = useState({ hours: initialData?.fomoHours || 47, minutes: 59, seconds: 59 })
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,14 +66,10 @@ export default function InteractiveQuoteView(props: any) {
     return () => clearInterval(timer)
   }, [])
 
-  // 3. BUDGET SLIDER INTERATTIVO
-  const [budgetLimit, setBudgetLimit] = useState(2200)
-
-  // BASE & OPZIONI (con tempi di consegna espressi in giorni)
-  const basePrice = 1550
-  const baseDays = 12
-
-  const options: Option[] = [
+  // 4. Configurazione Dati Preventivo
+  const basePrice = initialData?.basePrice ?? 1550
+  const baseDays = initialData?.baseDays ?? 12
+  const options: Option[] = initialData?.options ?? [
     {
       id: 'opt-1',
       title: 'Integrazione Stripe Checkout',
@@ -77,6 +94,7 @@ export default function InteractiveQuoteView(props: any) {
   ]
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>(['opt-1'])
+  const [budgetLimit, setBudgetLimit] = useState(2200)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -86,26 +104,18 @@ export default function InteractiveQuoteView(props: any) {
     )
   }
 
-  // CALCOLI DINAMICI
-  const calculateTotal = () => {
-    const optionsTotal = options
-      .filter((opt) => selectedOptions.includes(opt.id))
-      .reduce((sum, opt) => sum + opt.price, 0)
-    return basePrice + optionsTotal
-  }
+  // Calcoli Dinamici
+  const totalAmount = basePrice + options
+    .filter((opt) => selectedOptions.includes(opt.id))
+    .reduce((sum, opt) => sum + opt.price, 0)
 
-  const calculateDays = () => {
-    const optionsDays = options
-      .filter((opt) => selectedOptions.includes(opt.id))
-      .reduce((sum, opt) => sum + opt.days, 0)
-    return baseDays + optionsDays
-  }
+  const totalDays = baseDays + options
+    .filter((opt) => selectedOptions.includes(opt.id))
+    .reduce((sum, opt) => sum + opt.days, 0)
 
-  const totalAmount = calculateTotal()
-  const totalDays = calculateDays()
   const isOverBudget = totalAmount > budgetLimit
 
-  // 4. CANVAS DISEGNO FIRMA
+  // 5. Canvas Firma Digitale
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
@@ -119,17 +129,27 @@ export default function InteractiveQuoteView(props: any) {
     })
   }
 
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    }
+  }
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true)
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const { x, y } = getCoordinates(e)
     ctx.beginPath()
-    ctx.moveTo(clientX - rect.left, clientY - rect.top)
+    ctx.moveTo(x, y)
   }
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -138,13 +158,11 @@ export default function InteractiveQuoteView(props: any) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-    ctx.strokeStyle = '#000000'
-    ctx.lineWidth = 2.5
+    const { x, y } = getCoordinates(e)
+    ctx.strokeStyle = '#0f172a'
+    ctx.lineWidth = 3
     ctx.lineCap = 'round'
-    ctx.lineTo(clientX - rect.left, clientY - rect.top)
+    ctx.lineTo(x, y)
     ctx.stroke()
 
     if (!hasSignature) {
@@ -153,9 +171,7 @@ export default function InteractiveQuoteView(props: any) {
     }
   }
 
-  const stopDrawing = () => {
-    setIsDrawing(false)
-  }
+  const stopDrawing = () => setIsDrawing(false)
 
   const clearCanvas = () => {
     const canvas = canvasRef.current
@@ -166,38 +182,39 @@ export default function InteractiveQuoteView(props: any) {
     setHasSignature(false)
   }
 
-  // PAGAMENTO E INVIO
- const handleAcceptAndPay = async () => {
-  if (hasSignature || isSubmitting) return;
-  setIsSubmitting(true);
+  // 6. Pagamento Stripe & Invio
+  const handleAcceptAndPay = async () => {
+    if (!hasSignature || isSubmitting) return
+    setIsSubmitting(true)
 
-  try {
-    const currentPathId = window.location.pathname.split('/')[2];
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteId,
+          amount: totalAmount,
+          selectedOptions,
+          clientNotes,
+          title: initialData?.title || 'Sviluppo piattaforma web e integrazione dashboard',
+        }),
+      })
 
-    const res = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quoteId: currentPathId || quoteId,
-        amount: totalAmount,
-        title: 'Sviluppo piattaforma web e integrazione dashboard',
-      }),
-    });
+      const data = await res.json()
 
-    const data = await res.json();
-
-    if (data?.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || 'Errore durante la creazione del pagamento');
-      setIsSubmitting(false);
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Errore durante la creazione della sessione di pagamento.')
+        setIsSubmitting(false)
+      }
+    } catch (err) {
+      console.error('Errore:', err)
+      alert('Si è verificato un errore di connessione.')
+      setIsSubmitting(false)
     }
-  } catch (err: any) {
-    console.error('Errore:', err);
-    alert('Si è verificato un errore.');
-    setIsSubmitting(false);
   }
-};
+
   return (
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
@@ -208,10 +225,7 @@ export default function InteractiveQuoteView(props: any) {
             <span>🔥</span>
             <span>Offerta a tempo: blocco slot prioritario e condizioni garantite</span>
           </div>
-          <div 
-            style={{ backgroundColor: '#ffffff', color: '#000000' }} 
-            className="px-3 py-1 rounded-lg font-mono text-xs font-black shadow-md shrink-0"
-          >
+          <div className="bg-white text-slate-950 px-3 py-1 rounded-lg font-mono text-xs font-black shadow-md shrink-0">
             {String(timeLeft.hours).padStart(2, '0')}:
             {String(timeLeft.minutes).padStart(2, '0')}:
             {String(timeLeft.seconds).padStart(2, '0')}
@@ -226,7 +240,7 @@ export default function InteractiveQuoteView(props: any) {
                 Preventivo Interattivo
               </h1>
               <p className="text-slate-300 text-sm mt-1">
-                Sviluppo piattaforma web professionale & Integrazione Dashboard.
+                {initialData?.title || 'Sviluppo piattaforma web professionale & Integrazione Dashboard.'}
               </p>
             </div>
             <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs px-3 py-1 rounded-full font-semibold shrink-0">
@@ -234,7 +248,7 @@ export default function InteractiveQuoteView(props: any) {
             </span>
           </div>
 
-          {/* BOX VIDEO/AUDIO INTRO (WIDGET LOOM MOCKUP) */}
+          {/* BOX VIDEO/AUDIO INTRO (LOOM MOCKUP) */}
           <div className="bg-[#182744]/60 border border-[#273d67] rounded-xl p-3.5 flex items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
@@ -246,7 +260,8 @@ export default function InteractiveQuoteView(props: any) {
               </div>
             </div>
             <button 
-              onClick={() => alert("Puoi sostituire questo pulsante con un embed video Loom o audio reale.")}
+              type="button"
+              onClick={() => alert("Sostituisci questo handler con l'apertura di un modal Loom/Video.")}
               className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-3 py-1.5 rounded-lg transition"
             >
               Riproduci
@@ -265,8 +280,8 @@ export default function InteractiveQuoteView(props: any) {
             </div>
             <input
               type="range"
-              min="1500"
-              max="3500"
+              min="1000"
+              max="4000"
               step="50"
               value={budgetLimit}
               onChange={(e) => setBudgetLimit(Number(e.target.value))}
@@ -284,17 +299,17 @@ export default function InteractiveQuoteView(props: any) {
           </div>
         </div>
 
-        {/* ANTEPRIMA LIVE DEL PROGETTO (MOCKUP VISIVO DINAMICO) */}
+        {/* ANTEPRIMA LIVE MODULI */}
         <div className="bg-[#0b101d] border border-[#273d67] rounded-xl p-4 space-y-3">
           <div className="flex justify-between items-center text-xs">
             <span className="font-semibold text-slate-300 uppercase tracking-wider">
-              Anteprima Funzionalità Incorpotate
+              Anteprima Funzionalità Incorporate
             </span>
             <span className="text-slate-400">{selectedOptions.length + 1} Moduli Attivi</span>
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-md">
+            <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-md font-medium">
               ✓ Core App & Dashboard
             </span>
             {options.map((opt) => {
@@ -353,7 +368,7 @@ export default function InteractiveQuoteView(props: any) {
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
+                      readOnly
                       className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0d1424] border-slate-600 cursor-pointer"
                     />
                     <div>
@@ -379,7 +394,7 @@ export default function InteractiveQuoteView(props: any) {
           </div>
         </div>
 
-        {/* TESTIMONIANZA / PROVA SOCIALE */}
+        {/* PROVA SOCIALE */}
         <div className="bg-[#182744]/20 border border-[#273d67]/60 rounded-xl p-3.5 italic text-xs text-slate-300 flex items-start space-x-3">
           <span className="text-amber-400 text-lg leading-none">“</span>
           <div>
@@ -388,7 +403,7 @@ export default function InteractiveQuoteView(props: any) {
           </div>
         </div>
 
-        {/* NOTE O RICHIESTE SPECIALI DEL CLIENTE */}
+        {/* NOTE DEL CLIENTE */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-slate-300 block">
             Hai domande o richieste particolari prima di procedere? (Opzionale)
@@ -402,7 +417,7 @@ export default function InteractiveQuoteView(props: any) {
           />
         </div>
 
-        {/* RIQUADRO FIRMA DIGITALE (SFONDO BIANCO) */}
+        {/* RIQUADRO FIRMA DIGITALE */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <label className="text-xs font-semibold text-slate-300 block">
@@ -418,10 +433,7 @@ export default function InteractiveQuoteView(props: any) {
               </button>
             )}
           </div>
-          <div 
-            style={{ backgroundColor: '#ffffff' }} 
-            className="border border-[#273d67] rounded-xl overflow-hidden relative shadow-inner"
-          >
+          <div className="bg-white border border-[#273d67] rounded-xl overflow-hidden relative shadow-inner">
             <canvas
               ref={canvasRef}
               width={650}
@@ -433,8 +445,7 @@ export default function InteractiveQuoteView(props: any) {
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
-              style={{ backgroundColor: '#ffffff' }}
-              className="w-full h-[130px] cursor-crosshair touch-none"
+              className="w-full h-[130px] cursor-crosshair touch-none bg-white"
             />
             {!hasSignature && (
               <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 pointer-events-none select-none">
@@ -455,12 +466,13 @@ export default function InteractiveQuoteView(props: any) {
                 €{totalAmount}
               </p>
               <span className="text-xs text-slate-400">
-                (inclusa garanzia soddisfatti o rimborsati)
+                (incluso supporto e garanzia)
               </span>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={handleAcceptAndPay}
             disabled={isSubmitting || !hasSignature}
             className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-40 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all shadow-lg shadow-blue-500/20 cursor-pointer disabled:cursor-not-allowed"
