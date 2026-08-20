@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 
 interface Option {
@@ -23,21 +23,29 @@ interface InteractiveQuoteViewProps {
 }
 
 export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData }: InteractiveQuoteViewProps) {
-  // 1. Estrazione sicura dell'ID
-  const [quoteId, setQuoteId] = useState<string>('default')
-
-  useEffect(() => {
-    if (propQuoteId) {
-      setQuoteId(propQuoteId)
-    } else if (typeof window !== 'undefined') {
-      const pathId = window.location.pathname.split('/')[2]
+  // 1. Estrazione immediata e sicura dell'ID dall'URL o dalle props
+  const [quoteId] = useState<string>(() => {
+    if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null') {
+      return propQuoteId
+    }
+    if (typeof window !== 'undefined') {
+      const segments = window.location.pathname.split('/')
+      const pIndex = segments.indexOf('p')
+      if (pIndex !== -1 && segments[pIndex + 1]) {
+        const potentialId = segments[pIndex + 1]
+        if (potentialId && potentialId !== 'undefined' && potentialId !== 'null') {
+          return potentialId
+        }
+      }
+      const pathId = segments[2]
       if (pathId && pathId !== 'undefined' && pathId !== 'null') {
-        setQuoteId(pathId)
+        return pathId
       }
     }
-  }, [propQuoteId])
+    return 'default'
+  })
 
-  // 2. Tracciamento apertura
+  // 2. Tracciamento apertura preventivo
   useEffect(() => {
     if (!quoteId || quoteId === 'default') return
     
@@ -185,6 +193,12 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   // 6. Pagamento Stripe & Invio
   const handleAcceptAndPay = async () => {
     if (!hasSignature || isSubmitting) return
+
+    if (!quoteId || quoteId === 'default') {
+      alert('Impossibile procedere: ID preventivo non valido.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -248,7 +262,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             </span>
           </div>
 
-          {/* BOX VIDEO/AUDIO INTRO (LOOM MOCKUP) */}
+          {/* BOX VIDEO/AUDIO INTRO */}
           <div className="bg-[#182744]/60 border border-[#273d67] rounded-xl p-3.5 flex items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
@@ -391,15 +405,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                 </div>
               )
             })}
-          </div>
-        </div>
-
-        {/* PROVA SOCIALE */}
-        <div className="bg-[#182744]/20 border border-[#273d67]/60 rounded-xl p-3.5 italic text-xs text-slate-300 flex items-start space-x-3">
-          <span className="text-amber-400 text-lg leading-none">“</span>
-          <div>
-            <p>I tempi stabiliti sono stati rispettati al millesimo e la qualità dell'integrazione ha superato le mie aspettative.</p>
-            <span className="text-[11px] text-slate-400 not-italic block mt-1 font-semibold">— Marco R., Founder Tech</span>
           </div>
         </div>
 
