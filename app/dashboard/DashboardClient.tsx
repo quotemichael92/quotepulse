@@ -204,7 +204,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {quotes.map((q) => {
-                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid
+                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid || (q.client_name ? q.client_name.toLowerCase().replace(/\s+/g, '-') : 'preventivo');
                 return (
                   <div key={quoteId} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -217,7 +217,6 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
                         {q.status || 'PENDING'}
                       </span>
                     </div>
-
                     <div>
                       <p className="text-xs text-slate-400 mt-0.5">{q.client_email}</p>
                       <p className="text-xs text-slate-500 mt-1">Base: €{q.base_price}</p>
