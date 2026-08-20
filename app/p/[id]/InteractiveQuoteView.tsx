@@ -99,11 +99,15 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return () => clearInterval(timer)
   }, [])
 
-  // 4. Configurazione Dati Preventivo (Dati dal DB o fallback)
-  const title = quoteData?.title || quoteData?.client_name ? `Proposta per ${quoteData.client_name}` : 'Sviluppo piattaforma web professionale & Integrazione Dashboard.'
-  const basePrice = Number(quoteData?.base_price ?? quoteData?.price ?? initialData?.basePrice ?? 1550)
-  const baseDays = Number(quoteData?.base_days ?? quoteData?.days ?? initialData?.baseDays ?? 12)
+  // 4. Configurazione Dati Reali dal Database (senza fallback fittizi)
+  const clientName = quoteData?.client_name || 'Cliente'
+  const title = `Proposta commerciale per ${clientName}`
+  const descriptionText = quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
+  
+  const basePrice = Number(quoteData?.base_price ?? 0)
+  const baseDays = Number(quoteData?.base_days ?? 10)
 
+  // Opzioni gestite dinamicamente o da configurazione
   const options: Option[] = initialData?.options ?? [
     {
       id: 'opt-1',
@@ -128,8 +132,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     },
   ]
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(['opt-1'])
-  const [budgetLimit, setBudgetLimit] = useState(2200)
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([])
+  const [budgetLimit, setBudgetLimit] = useState(basePrice > 0 ? basePrice + 500 : 2000)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -256,6 +260,14 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0d1424] text-white flex items-center justify-center">
+        <p className="text-slate-400 text-sm animate-pulse">Caricamento preventivo in corso...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
@@ -288,26 +300,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
               Personalizzato per te
             </span>
           </div>
-
-          {/* BOX VIDEO/AUDIO INTRO */}
-          <div className="bg-[#182744]/60 border border-[#273d67] rounded-xl p-3.5 flex items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
-                ▶
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-white">Presentazione della Proposta (1 min)</p>
-                <p className="text-[11px] text-slate-400">Ascolta una breve spiegazione sulle scelte architetturali</p>
-              </div>
-            </div>
-            <button 
-              type="button"
-              onClick={() => alert("Sostituisci questo handler con l'apertura di un modal Loom/Video.")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-3 py-1.5 rounded-lg transition"
-            >
-              Riproduci
-            </button>
-          </div>
         </div>
 
         {/* BUDGET SLIDER & TEMPO DI CONSEGNA STIMATO */}
@@ -321,8 +313,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             </div>
             <input
               type="range"
-              min="1000"
-              max="4000"
+              min="500"
+              max="5000"
               step="50"
               value={budgetLimit}
               onChange={(e) => setBudgetLimit(Number(e.target.value))}
@@ -351,7 +343,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           
           <div className="flex flex-wrap gap-2">
             <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-md font-medium">
-              ✓ Core App & Dashboard
+              ✓ Servizio Base & Core
             </span>
             {options.map((opt) => {
               const active = selectedOptions.includes(opt.id)
@@ -371,15 +363,15 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* SERVIZIO BASE */}
+        {/* SERVIZIO BASE (Reale dal DB) */}
         <div>
           <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">
             SERVIZIO BASE
           </span>
           <div className="bg-[#182744]/80 border border-[#273d67] rounded-xl p-4 flex justify-between items-center">
             <div>
-              <h3 className="font-semibold text-white text-sm">Piattaforma Web & Configurazione Core</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Include architettura base, database, autenticazione utenti e layout reattivo ({baseDays} giorni)</p>
+              <h3 className="font-semibold text-white text-sm">{descriptionText}</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Inclusi nei termini concordati ({baseDays} giorni stimati)</p>
             </div>
             <span className="font-bold text-white text-base shrink-0 ml-4">
               €{basePrice}
