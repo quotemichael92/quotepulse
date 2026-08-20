@@ -89,13 +89,6 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
     }
   }
 
-  const handleCopyLink = (id: string) => {
-    const url = `${window.location.origin}/p/${id}`
-    navigator.clipboard.writeText(url)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
-
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen bg-slate-950 text-slate-100">
       <div>
@@ -230,9 +223,10 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {quotes.map((q, idx) => {
-                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid || `quote-${idx}`;
+                const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid;
+                
                 return (
-                  <div key={quoteId} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
+                  <div key={idx} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white text-sm">{q.client_name}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
@@ -249,12 +243,22 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-700/40">
-                      <span className="text-[10px] text-slate-500 font-mono">ID: {quoteId}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">ID: {quoteId || 'Mancante'}</span>
                       <button
-                        onClick={() => handleCopyLink(quoteId)}
+                        type="button"
+                        onClick={() => {
+                          if (!quoteId) {
+                            alert("Questo preventivo non ha un ID valido nel database.");
+                            return;
+                          }
+                          const url = `${window.location.origin}/p/${quoteId}`;
+                          navigator.clipboard.writeText(url);
+                          setCopiedId(String(quoteId));
+                          setTimeout(() => setCopiedId(null), 2000);
+                        }}
                         className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
                       >
-                        {copiedId === quoteId ? 'Copiato! ✓' : 'Copia Link'}
+                        {copiedId === String(quoteId) ? 'Copiato! ✓' : 'Copia Link'}
                       </button>
                     </div>
                   </div>
