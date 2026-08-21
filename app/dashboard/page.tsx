@@ -1,23 +1,99 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const router = useRouter();
+  
+  // Stati del form
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
-  const [projectDescription, setProjectDescription] = useState('Sviluppo piattaforma web professionale & Integrazione Dashboard.');
-  const [amount, setAmount] = useState(2200);
-  const [timerFomo, setTimerFomo] = useState(48);
-  const [options, setOptions] = useState<string[]>(['Core App & Dashboard', 'Integrazione Stripe Checkout']);
+  const [projectDescription, setProjectDescription] = useState('Architettura piattaforma web ad alte performance & Automazione flussi.');
+  const [baseAmount, setBaseAmount] = useState(2800);
+  const [timerFomo, setTimerFomo] = useState(24);
+  
+  // Moduli principali
+  const [modules, setModules] = useState<string[]>(['Core App & Dashboard', 'Integrazione Stripe Checkout', 'Autenticazione & Utenti']);
+  
+  // Add-on & Feature di Mercato Uniche (Risk-Reversal e Scope Shield)
+  const [addons, setAddons] = useState<{ [key: string]: { name: string; price: number; selected: boolean; badge: string } }>({
+    priority: { name: 'SLA Intervento Garantito (< 4h)', price: 400, selected: true, badge: 'High Priority' },
+    guarantee: { name: 'Garanzia Risultato Milestone (Risk-Free)', price: 600, selected: false, badge: 'Market Unique' },
+    scopeShield: { name: 'Pacchetto Scope Creep (3 Modifiche Extra incluse)', price: 450, selected: false, badge: 'Zero Sorprese' },
+    seo: { name: 'Ottimizzazione SEO & Performance Avanzata', price: 500, selected: false, badge: 'Growth' },
+  });
+
+  // Nota Vocale / Strategica del Professionista (Novità di mercato)
+  const [audioPitchNote, setAudioPitchNote] = useState('Ciao! Ho strutturato questo preventivo eliminando i rischi tecnici iniziali. Possiamo partire subito.');
+
+  // Stati firma Canvas
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSigned, setHasSigned] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleToggleOption = (opt: string) => {
-    setOptions(prev => 
-      prev.includes(opt) ? prev.filter(item => item !== opt) : [...prev, opt]
+  // Calcolo totale dinamico
+  const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
+  const totalAmount = baseAmount + addonsTotal;
+
+  const handleToggleModule = (mod: string) => {
+    setModules(prev => 
+      prev.includes(mod) ? prev.filter(item => item !== mod) : [...prev, mod]
     );
+  };
+
+  const handleToggleAddon = (key: string) => {
+    setAddons(prev => ({
+      ...prev,
+      [key]: { ...prev[key], selected: !prev[key].selected }
+    }));
+  };
+
+  // Funzioni per la Firma Canvas
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    setHasSigned(true);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSigned(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,6 +102,8 @@ export default function DashboardPage() {
     setError('');
 
     try {
+      const signatureDataUrl = canvasRef.current && hasSigned ? canvasRef.current.toDataURL() : null;
+
       const res = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,9 +111,14 @@ export default function DashboardPage() {
           clientName,
           clientEmail,
           projectDescription,
-          amount,
+          amount: totalAmount,
           timerFomo,
-          options
+          options: [
+            ...modules, 
+            ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
+            `Nota Vocale/Strategica: "${audioPitchNote}"`
+          ],
+          signature: signatureDataUrl
         }),
       });
 
@@ -46,7 +129,6 @@ export default function DashboardPage() {
       }
 
       if (data.success && data.quote && data.quote.id) {
-        // Reindirizza al preventivo reale con UUID di Supabase!
         router.push(`/p/${data.quote.id}`);
       } else {
         throw new Error('Risposta non valida dal server');
@@ -58,115 +140,257 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#090d16] text-white p-6 md:p-12 flex flex-col items-center">
-      <div className="w-full max-w-3xl">
-        {/* Banner FOMO */}
-        <div className="bg-[#111827] border border-blue-900/50 rounded-xl p-4 mb-8 flex items-center justify-between shadow-lg">
+    <main className="min-h-screen bg-[#05070b] text-white p-4 md:p-10 flex flex-col items-center">
+      <div className="w-full max-w-4xl space-y-8">
+        
+        {/* Header di Mercato Unico */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#111827] to-blue-950/40 border border-purple-900/30 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <span className="text-xl">🔥</span>
-            <span className="text-sm md:text-base font-medium text-blue-200">Offerta a tempo: blocco slot prioritario e condizioni garantite</span>
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-purple-200">QuotePulse Disruption Engine</h2>
+              <p className="text-xs text-gray-400">Trattative interattive anti-ghosting con Risk-Reversal integrato</p>
+            </div>
           </div>
-          <div className="bg-blue-600/20 border border-blue-500/30 text-blue-400 px-3 py-1 rounded-full text-xs font-mono font-bold">
-            {timerFomo}:00:00
+          <div className="flex items-center gap-2 bg-purple-900/20 border border-purple-500/30 px-4 py-2 rounded-xl">
+            <span className="text-xs text-gray-300">Scadenza Blocco Prezzo:</span>
+            <span className="text-purple-400 font-mono font-bold text-sm">{timerFomo}:00:00</span>
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Crea Preventivo Interattivo</h1>
-        <p className="text-gray-400 mb-8">Configura i parametri del progetto e genera il link di trattativa reale.</p>
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-white via-purple-200 to-blue-400 bg-clip-text text-transparent">
+            Crea Deal Room Dinamica
+          </h1>
+          <p className="text-gray-400 text-sm md:text-base">Configura la proposta commerciale definitiva che i tuoi clienti ameranno esplorare e firmare all'istante.</p>
+        </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-400 p-4 rounded-xl mb-6 text-sm">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-sm flex items-center gap-2">
+            ⚠️ {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-[#111827]/80 backdrop-blur border border-gray-800 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Box Cliente & Pitch Vocale (Elemento unico sul mercato) */}
+          <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+            <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
+              <span>🎯</span> Anagrafica & Video/Audio Pitch Strategico
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Nome Cliente / Azienda</label>
+                <input
+                  type="text"
+                  required
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="es. Giulia Rossi (TechLabs)"
+                  className="w-full bg-[#182234] border border-gray-700/80 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Email di Contatto</label>
+                <input
+                  type="email"
+                  required
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                  placeholder="giulia@techlabs.it"
+                  className="w-full bg-[#182234] border border-gray-700/80 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Nome Cliente</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Obiettivi del Progetto & Deliverables</label>
+              <textarea
+                rows={2}
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
+                className="w-full bg-[#182234] border border-gray-700/80 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition"
+              />
+            </div>
+
+            {/* Input Nota Vocale/Strategica visibile in cima al preventivo del cliente */}
+            <div className="bg-purple-950/20 border border-purple-800/40 p-4 rounded-xl space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                <span>🎙️</span> Nota Audio / Messaggio Strategico per il Cliente (Rompi-ghiaccio)
+              </label>
               <input
                 type="text"
-                required
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="es. Mario Rossi"
-                className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition"
+                value={audioPitchNote}
+                onChange={(e) => setAudioPitchNote(e.target.value)}
+                className="w-full bg-[#131b2e] border border-purple-900/50 rounded-lg px-3 py-2 text-xs text-purple-200 focus:outline-none focus:border-purple-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Email Cliente</label>
-              <input
-                type="email"
-                required
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="mario@esempio.com"
-                className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition"
-              />
+              <p className="text-[11px] text-gray-400">Il cliente vedrà questo messaggio in evidenza all'apertura della Deal Room per azzerare le resistenze.</p>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Descrizione Progetto</label>
-            <textarea
-              rows={3}
-              value={projectDescription}
-              onChange={(e) => setProjectDescription(e.target.value)}
-              className="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition"
-            />
-          </div>
-
-          {/* Budget Slider */}
-          <div className="bg-[#1f2937]/50 border border-gray-800 rounded-xl p-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-300">Target Budget Stimato</span>
-              <span className="text-2xl font-extrabold text-blue-400">€{amount}</span>
-            </div>
-            <input
-              type="range"
-              min="500"
-              max="5000"
-              step="100"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full accent-blue-600 cursor-pointer"
-            />
-          </div>
-
-          {/* Moduli e Opzioni interattive */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">Moduli e Add-on Inclusi</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {['Core App & Dashboard', 'Integrazione Stripe Checkout', 'Supporto Prioritario 24/7', 'Ottimizzazione SEO & Performance'].map((opt) => {
-                const isSelected = options.includes(opt);
-                return (
-                  <div
-                    key={opt}
-                    onClick={() => handleToggleOption(opt)}
-                    className={`cursor-pointer p-3 rounded-xl border text-sm font-medium transition flex items-center justify-between ${
-                      isSelected 
-                        ? 'bg-blue-600/10 border-blue-500 text-blue-300' 
-                        : 'bg-[#1f2937]/30 border-gray-800 text-gray-400 hover:border-gray-700'
-                    }`}
+          {/* Box Budget & Slider con Preset */}
+          <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
+                  <span>💶</span> Investimento Base Progetto
+                </h3>
+                <p className="text-xs text-gray-400">Seleziona un preset rapido o regola finemente il budget</p>
+              </div>
+              <div className="flex gap-2">
+                {[1800, 3200, 5000, 7500].map(preset => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setBaseAmount(preset)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${baseAmount === preset ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'bg-[#1f2937] text-gray-400 hover:bg-gray-700'}`}
                   >
-                    <span>✓ {opt}</span>
-                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-xs ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-gray-600'}`}>
-                      {isSelected ? '✓' : ''}
-                    </span>
-                  </div>
-                );
-              })}
+                    €{preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#182234]/60 border border-gray-800 rounded-xl p-5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-300">Valore Selezionato:</span>
+                <span className="text-3xl font-extrabold text-purple-400 font-mono">€{baseAmount}</span>
+              </div>
+              <input
+                type="range"
+                min="1000"
+                max="10000"
+                step="100"
+                value={baseAmount}
+                onChange={(e) => setBaseAmount(Number(e.target.value))}
+                className="w-full accent-purple-500 cursor-pointer h-2 bg-gray-700 rounded-lg"
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {loading ? 'Generazione in corso...' : 'Genera Preventivo Reale & Apri Deal Room'}
-          </button>
+          {/* Moduli & Add-on (Risk Reversal e Scope Shield) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Moduli core */}
+            <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
+                  <span>🧩</span> Moduli Core Inclusi
+                </h3>
+                <div className="space-y-2.5">
+                  {['Core App & Dashboard', 'Integrazione Stripe Checkout', 'Autenticazione & Utenti', 'Database Supabase Setup'].map((mod) => {
+                    const isSelected = modules.includes(mod);
+                    return (
+                      <div
+                        key={mod}
+                        onClick={() => handleToggleModule(mod)}
+                        className={`cursor-pointer p-3 rounded-xl border text-sm font-medium transition flex items-center justify-between ${
+                          isSelected 
+                            ? 'bg-purple-600/10 border-purple-500/80 text-purple-200' 
+                            : 'bg-[#182234]/40 border-gray-800 text-gray-400 hover:border-gray-700'
+                        }`}
+                      >
+                        <span>{mod}</span>
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${isSelected ? 'bg-purple-600 border-purple-500 text-white' : 'border-gray-700'}`}>
+                          {isSelected ? '✓' : ''}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Add-on Unici di Mercato (Risk Reversal & Scope Shield) */}
+            <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
+                  <span>🛡️</span> Add-on Antighosting & Garanzie
+                </h3>
+                <div className="space-y-2.5">
+                  {Object.entries(addons).map(([key, addon]) => (
+                    <div
+                      key={key}
+                      onClick={() => handleToggleAddon(key)}
+                      className={`cursor-pointer p-3 rounded-xl border text-sm transition flex items-center justify-between ${
+                        addon.selected 
+                          ? 'bg-emerald-600/10 border-emerald-500/80 text-emerald-200' 
+                          : 'bg-[#182234]/40 border-gray-800 text-gray-400 hover:border-gray-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{addon.name}</span>
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">{addon.badge}</span>
+                        </div>
+                        <div className={`text-xs font-mono font-bold mt-1 ${addon.selected ? 'text-emerald-400' : 'text-gray-500'}`}>+€{addon.price}</div>
+                      </div>
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${addon.selected ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-gray-700'}`}>
+                        {addon.selected ? '✓' : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Totale & Firma Canvas */}
+          <div className="bg-gradient-to-br from-[#111827] to-[#0a0f1d] border border-purple-900/60 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
+            
+            <div className="flex flex-col md:flex-row items-center justify-between border-b border-gray-800 pb-6 gap-4">
+              <div>
+                <span className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Totale Deal Room Configurato</span>
+                <p className="text-xs text-gray-500">Trasparenza totale senza costi nascosti</p>
+              </div>
+              <div className="text-4xl md:text-5xl font-extrabold text-purple-400 font-mono tracking-tight">
+                €{totalAmount}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Firma Digitale per Sblocco Immediato</label>
+                <button 
+                  type="button" 
+                  onClick={clearCanvas} 
+                  className="text-xs text-purple-400 hover:underline font-medium"
+                >
+                  Pulisci firma
+                </button>
+              </div>
+              <div className="border border-gray-700/80 rounded-xl overflow-hidden bg-[#182234]/60 flex justify-center shadow-inner">
+                <canvas
+                  ref={canvasRef}
+                  width={650}
+                  height={160}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  className="w-full cursor-crosshair touch-none"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5 italic">La firma autentica istantaneamente il contratto e attiva il canale di comunicazione dedicato nella Deal Room.</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
+            >
+              {loading ? 'Generazione Deal Room...' : '🚀 Lancia Deal Room Rivoluzionaria & Genera Link'}
+            </button>
+          </div>
+
         </form>
       </div>
     </main>
