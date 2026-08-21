@@ -23,40 +23,27 @@ interface InteractiveQuoteViewProps {
 }
 
 export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData }: InteractiveQuoteViewProps) {
-  // 1. Estrazione immediata e sicura dell'ID dall'URL o dalle props (Corretto per Supabase)
+  // Estrazione sicura dell'ID dalla URL attuale
   const [quoteId, setQuoteId] = useState<string>(() => {
-    if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null') {
+    if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null' && propQuoteId !== 'default') {
       return propQuoteId
     }
     if (typeof window !== 'undefined') {
       const segments = window.location.pathname.split('/')
       const pIndex = segments.indexOf('p')
       if (pIndex !== -1 && segments[pIndex + 1]) {
-        const potentialId = segments[pIndex + 1]
-        if (potentialId && potentialId !== 'undefined' && potentialId !== 'null') {
-          return potentialId
-        }
+        return segments[pIndex + 1]
       }
-      const pathId = segments[2]
-      if (pathId && pathId !== 'undefined' && pathId !== 'null') {
-        return pathId
+      if (segments[2]) {
+        return segments[2]
       }
     }
-    return 'default'
+    return ''
   })
 
-  // Sincronizzazione prop se cambia
-  useEffect(() => {
-    if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null') {
-      setQuoteId(propQuoteId)
-    }
-  }, [propQuoteId])
-
-  // Stato per i dati reali caricati dal database
   const [quoteData, setQuoteData] = useState<any>(initialData || null)
   const [loading, setLoading] = useState(!initialData)
 
-  // Fetch dei dati reali del preventivo basati sull'ID
   useEffect(() => {
     if (!quoteId || quoteId === 'default' || initialData) {
       if (initialData) setLoading(false)
@@ -67,8 +54,10 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
       try {
         const res = await fetch(`/api/quotes/${quoteId}`)
         const data = await res.json()
-        if (data.success && data.quote) {
+        if (res.ok && data.success && data.quote) {
           setQuoteData(data.quote)
+        } else {
+          console.error("Preventivo non trovato nel database.")
         }
       } catch (err) {
         console.error('Errore caricamento preventivo:', err)
@@ -79,21 +68,12 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     fetchQuote()
   }, [quoteId, initialData])
 
-  // 2. Tracciamento apertura preventivo
+  // Tracciamento visualizzazione
   useEffect(() => {
     if (!quoteId || quoteId === 'default') return
-    
-    const markAsViewed = async () => {
-      try {
-        await fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' })
-      } catch (err) {
-        console.error('Errore nel tracciare la visualizzazione:', err)
-      }
-    }
-    markAsViewed()
+    fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' }).catch(() => {})
   }, [quoteId])
 
-  // 3. Timer FOMO
   const fomoHoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 47
   const [timeLeft, setTimeLeft] = useState({ hours: fomoHoursFromDb, minutes: 59, seconds: 59 })
 
@@ -109,15 +89,13 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return () => clearInterval(timer)
   }, [])
 
-  // 4. Configurazione Dati Reali dal Database (con fallback di sicurezza se vuoti)
   const clientName = quoteData?.client_name || 'Cliente'
   const title = `Proposta commerciale per ${clientName}`
-  const descriptionText = quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
+  const descriptionText = quoteData?.project_description || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  const basePrice = Number(quoteData?.base_price ?? 0)
+  const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? 1000)
   const baseDays = Number(quoteData?.base_days ?? 10)
 
-  // Opzioni gestite dinamicamente dal database o fallback
   const options: Option[] = quoteData?.options ?? initialData?.options ?? [
     {
       id: 'opt-1',
@@ -143,11 +121,10 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   ]
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
-  const [budgetLimit, setBudgetLimit] = useState(basePrice > 0 ? basePrice + 500 : 2000)
+  const [budgetLimit, setBudgetLimit] = useState(basePrice + 500)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Aggiorna il budget limit se cambia il prezzo base dal DB
   useEffect(() => {
     if (basePrice > 0) {
       setBudgetLimit(basePrice + 500)
@@ -160,7 +137,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     )
   }
 
-  // Calcoli Dinamici
   const totalAmount = basePrice + options
     .filter((opt) => selectedOptions.includes(opt.id))
     .reduce((sum, opt) => sum + opt.price, 0)
@@ -171,7 +147,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
   const isOverBudget = totalAmount > budgetLimit
 
-  // 5. Canvas Firma Digitale
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
@@ -238,12 +213,10 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     setHasSignature(false)
   }
 
-  // 6. Pagamento Stripe & Invio
   const handleAcceptAndPay = async () => {
     if (!hasSignature || isSubmitting) return
-
-    if (!quoteId || quoteId === 'default') {
-      alert('Impossibile procedere: ID preventivo non valido.')
+    if (!quoteId) {
+      alert('ID preventivo mancante.')
       return
     }
 
@@ -280,7 +253,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0d1424] text-white flex items-center justify-center">
-        <p className="text-slate-400 text-sm animate-pulse">Caricamento preventivo in corso...</p>
+        <p className="text-slate-400 text-sm animate-pulse">Caricamento preventivo dal database...</p>
       </div>
     )
   }
@@ -289,7 +262,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
         
-        {/* BANNER FOMO TIMER */}
+        {/* FOMO TIMER */}
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
           <div className="flex items-center space-x-2 text-amber-400 font-medium text-xs sm:text-sm">
             <span>🔥</span>
@@ -302,24 +275,20 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* INTESTAZIONE E MESSAGGIO INTRODUTTIVO */}
+        {/* HEADER */}
         <div className="space-y-3">
           <div className="flex justify-between items-start gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">
-                Preventivo Interattivo
-              </h1>
-              <p className="text-slate-300 text-sm mt-1">
-                {title}
-              </p>
+              <h1 className="text-2xl font-bold text-white tracking-wide">Preventivo Interattivo</h1>
+              <p className="text-slate-300 text-sm mt-1">{title}</p>
             </div>
             <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs px-3 py-1 rounded-full font-semibold shrink-0">
-              Personalizzato per te
+              Personalizzato per {clientName}
             </span>
           </div>
         </div>
 
-        {/* BUDGET SLIDER & TEMPO DI CONSEGNA STIMATO */}
+        {/* BUDGET & CONSEGNA */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -340,67 +309,26 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
 
           <div className="bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-              Consegna Stimata
-            </span>
-            <span className="text-xl font-extrabold text-blue-400 mt-0.5">
-              {totalDays} Giorni Lavorativi
-            </span>
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Consegna Stimata</span>
+            <span className="text-xl font-extrabold text-blue-400 mt-0.5">{totalDays} Giorni Lavorativi</span>
           </div>
         </div>
 
-        {/* ANTEPRIMA LIVE MODULI */}
-        <div className="bg-[#0b101d] border border-[#273d67] rounded-xl p-4 space-y-3">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-slate-300 uppercase tracking-wider">
-              Anteprima Funzionalità Incorporate
-            </span>
-            <span className="text-slate-400">{selectedOptions.length + 1} Moduli Attivi</span>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-md font-medium">
-              ✓ Servizio Base & Core
-            </span>
-            {options.map((opt) => {
-              const active = selectedOptions.includes(opt.id)
-              return (
-                <span
-                  key={opt.id}
-                  className={`text-xs px-2.5 py-1 rounded-md transition-all ${
-                    active
-                      ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300 font-medium'
-                      : 'bg-slate-800/40 border border-slate-700/50 text-slate-500 line-through'
-                  }`}
-                >
-                  {active ? '✓ ' : '+ '}{opt.title}
-                </span>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* SERVIZIO BASE (Reale dal DB) */}
+        {/* SERVIZIO BASE */}
         <div>
-          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">
-            SERVIZIO BASE
-          </span>
+          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">SERVIZIO BASE</span>
           <div className="bg-[#182744]/80 border border-[#273d67] rounded-xl p-4 flex justify-between items-center">
             <div>
               <h3 className="font-semibold text-white text-sm">{descriptionText}</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Inclusi nei termini concordati ({baseDays} giorni stimati)</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Inclusi nei termini concordati</p>
             </div>
-            <span className="font-bold text-white text-base shrink-0 ml-4">
-              €{basePrice}
-            </span>
+            <span className="font-bold text-white text-base shrink-0 ml-4">€{basePrice}</span>
           </div>
         </div>
 
-        {/* OPZIONI AGGIUNTIVE */}
+        {/* OPZIONI */}
         <div>
-          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">
-            MODULI & OPZIONI AGGIUNTIVE
-          </span>
+          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">MODULI & OPZIONI AGGIUNTIVE</span>
           <div className="space-y-2.5">
             {options.map((opt) => {
               const isSelected = selectedOptions.includes(opt.id)
@@ -422,54 +350,23 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                       className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0d1424] border-slate-600 cursor-pointer"
                     />
                     <div>
-                      <h4 className="font-semibold text-xs sm:text-sm text-white flex items-center gap-2">
-                        {opt.title}
-                        {opt.days > 0 && (
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            (+{opt.days} {opt.days === 1 ? 'giorno' : 'giorni'})
-                          </span>
-                        )}
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        {opt.description}
-                      </p>
+                      <h4 className="font-semibold text-xs sm:text-sm text-white">{opt.title}</h4>
+                      <p className="text-[11px] text-slate-400">{opt.description}</p>
                     </div>
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">
-                    +€{opt.price}
-                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">+€{opt.price}</span>
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* NOTE DEL CLIENTE */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 block">
-            Hai domande o richieste particolari prima di procedere? (Opzionale)
-          </label>
-          <textarea
-            value={clientNotes}
-            onChange={(e) => setClientNotes(e.target.value)}
-            placeholder="Aggiungi qui eventuali note sul progetto..."
-            rows={2}
-            className="w-full bg-[#0b101d] border border-[#273d67] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
-          />
-        </div>
-
-        {/* RIQUADRO FIRMA DIGITALE */}
+        {/* FIRMA */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <label className="text-xs font-semibold text-slate-300 block">
-              Firma nel riquadro sottostante per accettare il preventivo
-            </label>
+            <label className="text-xs font-semibold text-slate-300 block">Firma nel riquadro sottostante per accettare</label>
             {hasSignature && (
-              <button
-                type="button"
-                onClick={clearCanvas}
-                className="text-xs text-rose-400 hover:underline"
-              >
+              <button type="button" onClick={clearCanvas} className="text-xs text-rose-400 hover:underline">
                 Cancella firma
               </button>
             )}
@@ -496,27 +393,18 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* FOOTER TOTALE E PULSANTE STRIPE */}
+        {/* PAY BUTTON */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-[#23385d] gap-4">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-              Totale da Pagare (Acconto)
-            </p>
-            <div className="flex items-baseline space-x-2">
-              <p className="text-3xl font-extrabold text-white">
-                €{totalAmount}
-              </p>
-              <span className="text-xs text-slate-400">
-                (incluso supporto e garanzia)
-              </span>
-            </div>
+            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Totale da Pagare</p>
+            <p className="text-3xl font-extrabold text-white">€{totalAmount}</p>
           </div>
 
           <button
             type="button"
             onClick={handleAcceptAndPay}
             disabled={isSubmitting || !hasSignature}
-            className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-40 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all shadow-lg shadow-blue-500/20 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-40 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all shadow-lg cursor-pointer disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Apertura Stripe...' : 'Firma e Paga con Stripe'}
           </button>
