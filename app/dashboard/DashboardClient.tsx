@@ -30,23 +30,8 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
   const [clientEmail, setClientEmail] = useState('')
   const [projectDescription, setProjectDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [options, setOptions] = useState<Option[]>([{ title: '', price: '' }])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  const handleAddOption = () => {
-    setOptions([...options, { title: '', price: '' }])
-  }
-
-  const handleRemoveOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index))
-  }
-
-  const handleOptionChange = (index: number, field: 'title' | 'price', value: string) => {
-    const newOptions = [...options]
-    newOptions[index][field] = value
-    setOptions(newOptions)
-  }
 
   const handleCreateQuote = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,13 +49,26 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
       })
 
       const data = await res.json()
+      
       if (res.ok && data.success && data.quote) {
-        setQuotes([data.quote, ...quotes])
+        const newQuote = data.quote
+        const realId = newQuote.id || newQuote.uuid || newQuote._id
+
+        // Aggiorna la lista locale
+        setQuotes([newQuote, ...quotes])
+        
+        // Pulisci il form
         setClientName('')
         setClientEmail('')
         setProjectDescription('')
         setAmount('')
-        setOptions([{ title: '', price: '' }])
+
+        // Reindirizza direttamente alla pagina reale del preventivo (senza demo!)
+        if (realId) {
+          window.location.href = `/p/${realId}`
+        } else {
+          alert("Preventivo creato, ma ID non trovato.")
+        }
       } else {
         alert(data.error || "Si è verificato un errore durante la creazione del preventivo.")
       }
@@ -148,7 +146,7 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
               disabled={loading}
               className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold p-3 rounded-xl transition-colors text-sm shadow-lg disabled:opacity-50"
             >
-              {loading ? 'Creazione in corso...' : 'Genera Preventivo & Link'}
+              {loading ? 'Creazione in corso...' : 'Genera Preventivo & Apri'}
             </button>
           </form>
         </div>
