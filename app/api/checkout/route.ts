@@ -8,37 +8,58 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientEmail, amount, quoteId } = body;
+    const { clientEmail, amount, quoteId, priceId } = body;
     
-    // CONTROLLO RIGIDO: Se il quoteId è vuoto, non valido o "undefined", blocchiamo tutto
-    if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '' || quoteId === 'default') {
-      return NextResponse.json(
-        { error: 'ID preventivo non valido o mancante. Impossibile procedere con il pagamento.' },
-        { status: 400 }
-      );
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    let sessionParams: Stripe.Checkout.SessionCreateParams;
+
+    // CASO 1: Abbonamento mensile (Starter / Pro tramite priceId)
+    if (priceId) {
+      sessionParams = {
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${origin}/dashboard?success=true`,
+        cancel_url: `${origin}/`,
+      };
+    } 
+    // CASO 2: Pagamento preventivo personalizzato (tramite amount e quoteId)
+    else {
+      if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '' || quoteId === 'default') {
+        return NextResponse.json(
+          { error: 'ID preventivo non valido o mancante. Impossibile procedere con il pagamento.' },
+          { status: 400 }
+        );
+      }
+
+      sessionParams = {
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Acconto Preventivo',
+              },
+              unit_amount: Math.round((Number(amount) || 0) * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        customer_email: clientEmail || undefined,
+        success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/p/${quoteId}`,
+      };
     }
 
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL;
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Acconto Preventivo',
-            },
-            unit_amount: Math.round(amount * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      customer_email: clientEmail || undefined,
-      success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/p/${quoteId}`,
-    });
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
