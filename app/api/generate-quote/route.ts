@@ -12,7 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Configurazione mancante' }, { status: 500 })
     }
 
-    // Chiamata REST diretta a Supabase (evita del tutto i bug dell'SDK sulle nuove chiavi API)
+    const numericAmount = Number(amount) || 0
+
+    // Invio dei dati mappati su tutte le colonne esistenti della tabella 'quotes'
     const res = await fetch(`${supabaseUrl}/rest/v1/quotes`, {
       method: 'POST',
       headers: {
@@ -25,9 +27,13 @@ export async function POST(req: Request) {
         client_name: clientName,
         client_email: clientEmail,
         title: `Preventivo per ${clientName}`,
-        description: projectDescription,
-        amount: Number(amount) || 0,
-        status: 'pending',
+        description: projectDescription || 'Servizio professionale',
+        base_price: numericAmount,
+        base_amount: numericAmount,
+        status: 'PENDING',
+        options: [],
+        addons: [],
+        features: []
       }),
     })
 
