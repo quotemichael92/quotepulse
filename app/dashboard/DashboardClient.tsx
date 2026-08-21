@@ -15,7 +15,8 @@ interface Quote {
   uuid?: string
   client_name: string
   client_email: string
-  base_price: number
+  amount?: number
+  base_price?: number
   status?: string
 }
 
@@ -27,9 +28,8 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
   const [quotes, setQuotes] = useState<Quote[]>(initialQuotes)
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
-  const [description, setDescription] = useState('')
-  const [basePrice, setBasePrice] = useState('')
-  const [fomoHours, setFomoHours] = useState('')
+  const [projectDescription, setProjectDescription] = useState('')
+  const [amount, setAmount] = useState('')
   const [options, setOptions] = useState<Option[]>([{ title: '', price: '' }])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -52,20 +52,14 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
     e.preventDefault()
     setLoading(true)
     try {
-      const validOptions = options
-        .filter(opt => opt.title.trim() !== '' && opt.price !== '')
-        .map(opt => ({ title: opt.title.trim(), price: Number(opt.price) }))
-
-      const res = await fetch('/api/quotes/create', {
+      const res = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName,
           clientEmail,
-          description,
-          basePrice: Number(basePrice),
-          fomoHours: fomoHours ? Number(fomoHours) : undefined,
-          options: validOptions
+          projectDescription,
+          amount: Number(amount)
         })
       })
 
@@ -74,12 +68,11 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
         setQuotes([data.quote, ...quotes])
         setClientName('')
         setClientEmail('')
-        setDescription('')
-        setBasePrice('')
-        setFomoHours('')
+        setProjectDescription('')
+        setAmount('')
         setOptions([{ title: '', price: '' }])
       } else {
-        alert("Si è verificato un errore durante la creazione del preventivo.")
+        alert(data.error || "Si è verificato un errore durante la creazione del preventivo.")
       }
     } catch (err) {
       console.error(err)
@@ -127,81 +120,27 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">DESCRIZIONE</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">DESCRIZIONE PROGETTO</label>
               <textarea
                 rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
                 placeholder="Dettagli e scopo del progetto..."
                 className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg text-sm focus:outline-none focus:border-slate-500"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">PREZZO BASE (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg text-sm focus:outline-none focus:border-slate-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">ORE FOMO (OPZIONALE)</label>
-                <input
-                  type="number"
-                  value={fomoHours}
-                  onChange={(e) => setFomoHours(e.target.value)}
-                  placeholder="Es. 48"
-                  className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg text-sm focus:outline-none focus:border-slate-500"
-                />
-              </div>
-            </div>
-
-            {/* MODULI OPZIONALI DINAMICI */}
-            <div className="pt-4 border-t border-slate-800">
-              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">MODULI / OPZIONI EXTRA</label>
-              
-              {options.map((opt, index) => (
-                <div key={index} className="flex gap-2 mb-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="Es. Seduta Extra / Servizio Aggiuntivo"
-                    value={opt.title}
-                    onChange={(e) => handleOptionChange(index, 'title', e.target.value)}
-                    className="flex-1 bg-slate-800 border border-slate-700 text-white p-2.5 rounded-lg text-xs focus:outline-none focus:border-slate-500"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="€ Prezzo"
-                    value={opt.price}
-                    onChange={(e) => handleOptionChange(index, 'price', e.target.value)}
-                    className="w-28 bg-slate-800 border border-slate-700 text-white p-2.5 rounded-lg text-xs focus:outline-none focus:border-slate-500"
-                  />
-                  {options.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveOption(index)}
-                      className="text-red-400 hover:text-red-300 px-2 py-1 text-sm font-bold rounded"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              <button
-                type="button"
-                onClick={handleAddOption}
-                className="mt-2 text-xs font-semibold text-blue-400 hover:text-blue-300"
-              >
-                + Aggiungi opzione
-              </button>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">IMPORTO TOTALE (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-slate-800 border border-slate-700 text-white p-3 rounded-lg text-sm focus:outline-none focus:border-slate-500"
+              />
             </div>
 
             <button
@@ -224,6 +163,7 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {quotes.map((q, idx) => {
                 const quoteId = q.id || q._id || q.quote_id || q.slug || q.uuid;
+                const displayAmount = q.amount ?? q.base_price ?? 0;
                 
                 return (
                   <div key={idx} className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
@@ -239,7 +179,7 @@ export default function DashboardClient({ initialQuotes }: DashboardClientProps)
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mt-0.5">{q.client_email}</p>
-                      <p className="text-xs text-slate-500 mt-1">Base: €{q.base_price}</p>
+                      <p className="text-xs text-slate-500 mt-1">Importo: €{displayAmount}</p>
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-700/40">
