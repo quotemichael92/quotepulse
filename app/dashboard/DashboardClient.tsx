@@ -30,9 +30,8 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
         const newQuote = data.quote
         const realId = newQuote.id || newQuote.uuid || newQuote._id
         
-        if (!realId || realId.toString().includes('demo')) {
-          console.error("ID non valido ricevuto:", newQuote)
-          alert("Errore: ID preventivo non valido dal database.")
+        if (!realId) {
+          alert("Errore: ID preventivo non trovato.")
           return
         }
 
