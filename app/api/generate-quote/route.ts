@@ -59,6 +59,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nessun dato restituito da Supabase.' }, { status: 500 })
     }
 
+    console.log("Preventivo creato con successo ID reale:", data[0].id)
+
     return NextResponse.json({ success: true, quote: data[0] }, { status: 200 })
   } catch (err: any) {
     console.error('Errore interno API:', err)
