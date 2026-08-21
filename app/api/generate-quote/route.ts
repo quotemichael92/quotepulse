@@ -20,12 +20,9 @@ export async function POST(req: Request) {
     }
 
     const numericAmount = Number(amount) || 0
-
-    // Calcoliamo la scadenza in base al timer FOMO (default 48 ore se non specificato)
     const fomoHours = Number(timerFomo) || 48
     const expiresAt = new Date(Date.now() + fomoHours * 60 * 60 * 1000).toISOString()
 
-    // Invio dei dati completi mappati sulle colonne della tabella Supabase
     const res = await fetch(`${supabaseUrl}/rest/v1/quotes`, {
       method: 'POST',
       headers: {

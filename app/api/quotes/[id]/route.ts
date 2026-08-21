@@ -14,7 +14,6 @@ export async function GET(
       return NextResponse.json({ error: 'Configurazione Supabase mancante' }, { status: 500 })
     }
 
-    // Effettuiamo una chiamata REST diretta a Supabase che non va in errore bloccante se il formato ID differisce
     const res = await fetch(`${supabaseUrl}/rest/v1/quotes?id=eq.${id}&select=*`, {
       method: 'GET',
       headers: {
@@ -26,7 +25,6 @@ export async function GET(
     const text = await res.text()
     
     if (!res.ok) {
-      console.error('Errore Supabase GET:', text)
       return NextResponse.json({ success: false, error: text }, { status: 400 })
     }
 
