@@ -9,12 +9,12 @@ export async function POST(req: Request) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: 'Configurazione mancante' }, { status: 500 })
+      return NextResponse.json({ error: 'Configurazione mancante nelle variabili d\'ambiente' }, { status: 500 })
     }
 
     const numericAmount = Number(amount) || 0
 
-    // Invio dei dati mappati su tutte le colonne esistenti della tabella 'quotes'
+    // Eseguiamo la chiamata POST a Supabase chiedendo esplicitamente il ritorno del record creato
     const res = await fetch(`${supabaseUrl}/rest/v1/quotes`, {
       method: 'POST',
       headers: {
@@ -37,14 +37,22 @@ export async function POST(req: Request) {
       }),
     })
 
+    const responseText = await res.text()
+
     if (!res.ok) {
-      const errData = await res.json()
-      return NextResponse.json({ error: errData.message || 'Errore salvataggio Supabase' }, { status: 400 })
+      console.error('Errore Supabase:', responseText)
+      return NextResponse.json({ error: `Errore Supabase: ${responseText}` }, { status: 400 })
     }
 
-    const data = await res.json()
+    const data = JSON.parse(responseText)
+    
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Nessun dato restituito da Supabase dopo l\'inserimento.' }, { status: 500 })
+    }
+
     return NextResponse.json({ success: true, quote: data[0] }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Errore server' }, { status: 500 })
+    console.error('Errore interno API:', err)
+    return NextResponse.json({ error: err?.message || 'Errore server interno' }, { status: 500 })
   }
 }
