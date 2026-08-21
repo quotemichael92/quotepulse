@@ -9,9 +9,8 @@ export async function POST(req: Request) {
   try {
     const { id } = await req.json()
 
-    if (!id || id.toString().startsWith('demo-')) {
-      return NextResponse.json({ success: true, message: 'Demo view acknowledged' })
-    }
+    
+  
 
     const { data, error } = await supabase
       .from('quotes')

@@ -4,14 +4,35 @@ export async function POST(req: Request) {
   try {
     const { id } = await req.json()
 
-    // SE È DEMO, NON INTERROGARE SUPABASE
-    if (id && id.toString().startsWith('demo-')) {
-      return NextResponse.json({ success: true, isDemo: true })
+    if (!id) {
+      return NextResponse.json({ error: 'ID preventivo mancante' }, { status: 400 })
     }
 
-    // ... Il resto del tuo codice Supabase esistente rimane sotto ...
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: 'Configurazione Supabase mancante' }, { status: 500 })
+    }
+
+    const res = await fetch(`${supabaseUrl}/rest/v1/quotes?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ status: 'viewed' }),
+    })
+
+    if (!res.ok) {
+      return NextResponse.json({ error: 'Errore aggiornamento stato su Supabase' }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('Errore API view:', err)
+    return NextResponse.json({ error: err?.message || 'Errore server interno' }, { status: 500 })
   }
 }
