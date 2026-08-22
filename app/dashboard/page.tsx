@@ -33,11 +33,38 @@ export default function DashboardPage() {
   const [hasSigned, setHasSigned] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Calcolo totale dinamico
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
   const totalAmount = baseAmount + addonsTotal;
+
+  // Funzione per generare contenuti con l'IA
+  const handleAiGenerate = async () => {
+    if (!clientName) {
+      setError('Inserisci prima il nome del cliente o il tipo di progetto per dare un contesto all\'IA.');
+      return;
+    }
+    setAiLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientName, projectDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore generazione IA');
+      
+      if (data.projectDescription) setProjectDescription(data.projectDescription);
+      if (data.audioPitchNote) setAudioPitchNote(data.audioPitchNote);
+    } catch (err: any) {
+      setError(err.message || 'Errore durante la generazione con IA');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleToggleModule = (mod: string) => {
     setModules(prev => 
@@ -178,9 +205,19 @@ export default function DashboardPage() {
           
           {/* Box Cliente & Pitch Vocale (Elemento unico sul mercato) */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
-            <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
-              <span>🎯</span> Anagrafica & Video/Audio Pitch Strategico
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
+                <span>🎯</span> Anagrafica & Video/Audio Pitch Strategico
+              </h3>
+              <button
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={aiLoading}
+                className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                <span>✨</span> {aiLoading ? 'Generazione IA...' : 'Ottimizza con IA'}
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
