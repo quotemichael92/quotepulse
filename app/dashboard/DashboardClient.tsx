@@ -10,13 +10,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
   const [quotes, setQuotes] = useState(initialQuotes)
   const [isAiLoading, setIsAiLoading] = useState(false)
 
-  // AGGIUNTA CHIRURGICA: Funzione OpenAI pulita e isolata
   const handleAiSuggest = async () => {
-    if (!projectDescription && !clientName) {
-      alert("Scrivi prima due parole nella descrizione o il nome del cliente.")
-      return
-    }
-
     setIsAiLoading(true)
     try {
       const res = await fetch('/api/ai-suggest', {
@@ -25,15 +19,11 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
         body: JSON.stringify({ prompt: projectDescription || `Preventivo per ${clientName}` }),
       })
       const data = await res.json()
-      
-      if (data.success && data.suggestion) {
+      if (data.success) {
         setProjectDescription(data.suggestion)
-      } else {
-        alert(data.error || "Errore durante la generazione con IA.")
       }
     } catch (err) {
-      console.error('Errore IA:', err)
-      alert("Errore di connessione con l'IA.")
+      console.error(err)
     } finally {
       setIsAiLoading(false)
     }
@@ -100,22 +90,19 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           />
         </div>
         <div>
-          {/* AGGIUNTA CHIRURGICA: Intestazione con il pulsante ✨ Genera con IA */}
           <div className="flex justify-between items-center mb-1">
             <label className="block text-sm font-medium">Descrizione Progetto</label>
-            <button
-              type="button"
-              onClick={handleAiSuggest}
-              disabled={isAiLoading}
-              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded shadow transition-all disabled:opacity-50"
+            <button 
+              type="button" 
+              onClick={handleAiSuggest} 
+              className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
             >
-              {isAiLoading ? '✨ Sto pensando...' : '✨ Genera con IA'}
+              {isAiLoading ? '...' : '✨ Genera IA'}
             </button>
           </div>
           <textarea 
             value={projectDescription} 
             onChange={(e) => setProjectDescription(e.target.value)} 
-            rows={4}
             className="w-full p-2 border rounded bg-transparent"
           />
         </div>
