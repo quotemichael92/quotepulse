@@ -74,8 +74,15 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' }).catch(() => {})
   }, [quoteId])
 
-  const fomoHoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 47
-  const [timeLeft, setTimeLeft] = useState({ hours: fomoHoursFromDb, minutes: 59, seconds: 59 })
+  const initialFomoHours = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 24
+  const [fomoHours, setFomoHours] = useState<number>(initialFomoHours)
+  const [timeLeft, setTimeLeft] = useState({ hours: initialFomoHours, minutes: 0, seconds: 0 })
+
+  useEffect(() => {
+    const hoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 24
+    setFomoHours(hoursFromDb)
+    setTimeLeft(prev => ({ ...prev, hours: hoursFromDb }))
+  }, [quoteData, initialData])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -88,6 +95,12 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  const handleHoursChange = (newHours: number) => {
+    const validated = Math.max(1, Math.min(168, newHours))
+    setFomoHours(validated)
+    setTimeLeft(prev => ({ ...prev, hours: validated, minutes: 0, seconds: 0 }))
+  }
 
   const clientName = quoteData?.client_name || 'Cliente'
   const title = `Proposta commerciale per ${clientName}`
@@ -262,16 +275,31 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
         
-        {/* FOMO TIMER */}
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+        {/* FOMO TIMER & SETTING */}
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center space-x-2 text-amber-400 font-medium text-xs sm:text-sm">
             <span>🔥</span>
-            <span>Offerta a tempo: blocco slot prioritario e condizioni garantite</span>
+            <span>Offerta a tempo: blocco slot prioritario</span>
           </div>
-          <div className="bg-white text-slate-950 px-3 py-1 rounded-lg font-mono text-xs font-black shadow-md shrink-0">
-            {String(timeLeft.hours).padStart(2, '0')}:
-            {String(timeLeft.minutes).padStart(2, '0')}:
-            {String(timeLeft.seconds).padStart(2, '0')}
+          
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1.5 bg-[#0d1424]/60 border border-amber-500/30 px-2 py-1 rounded-lg">
+              <span className="text-[10px] text-amber-300 uppercase tracking-wider font-semibold">Durata (h):</span>
+              <input
+                type="number"
+                min="1"
+                max="168"
+                value={fomoHours}
+                onChange={(e) => handleHoursChange(Number(e.target.value))}
+                className="w-12 bg-transparent text-white font-mono text-xs text-center focus:outline-none border-b border-amber-400/50"
+              />
+            </div>
+
+            <div className="bg-white text-slate-950 px-3 py-1 rounded-lg font-mono text-xs font-black shadow-md shrink-0">
+              {String(timeLeft.hours).padStart(2, '0')}:
+              {String(timeLeft.minutes).padStart(2, '0')}:
+              {String(timeLeft.seconds).padStart(2, '0')}
+            </div>
           </div>
         </div>
 
