@@ -45,19 +45,18 @@ export default function DashboardPage() {
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
   const totalAmount = baseAmount + addonsTotal;
 
-  // Funzione per generare contenuti con l'IA
+  // Funzione per generare contenuti con l'IA (corretta per evitare blocchi e l'errore rosso)
   const handleAiGenerate = async () => {
-    if (!clientName) {
-      setError('Inserisci prima il nome del cliente o il tipo di progetto per dare un contesto all\'IA.');
-      return;
-    }
     setAiLoading(true);
     setError('');
     try {
       const res = await fetch('/api/ai-suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientName, projectDescription }),
+        body: JSON.stringify({ 
+          clientName: clientName || 'Cliente', 
+          projectDescription: projectDescription || 'Progetto generico' 
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Errore generazione IA');
@@ -318,7 +317,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Moduli Dinamici & Add-on (Risk Reversal e Scope Shield) */}
+          {/* Moduli Dinamici & Add-on */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Moduli Dinamici Inseriti dal Professionista */}
@@ -368,7 +367,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Add-on Unici di Mercato (Risk Reversal & Scope Shield) */}
+            {/* Add-on Unici di Mercato */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
