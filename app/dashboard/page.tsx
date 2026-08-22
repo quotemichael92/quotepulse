@@ -13,8 +13,13 @@ export default function DashboardPage() {
   const [baseAmount, setBaseAmount] = useState(2800);
   const [timerFomo, setTimerFomo] = useState(24);
   
-  // Moduli principali
-  const [modules, setModules] = useState<string[]>(['Core App & Dashboard', 'Integrazione Stripe Checkout', 'Autenticazione & Utenti']);
+  // Moduli dinamici (input libero)
+  const [modules, setModules] = useState<string[]>([
+    'Core App & Dashboard', 
+    'Integrazione Stripe Checkout', 
+    'Autenticazione & Utenti'
+  ]);
+  const [newModuleInput, setNewModuleInput] = useState('');
   
   // Add-on & Feature di Mercato Uniche (Risk-Reversal e Scope Shield)
   const [addons, setAddons] = useState<{ [key: string]: { name: string; price: number; selected: boolean; badge: string } }>({
@@ -24,7 +29,7 @@ export default function DashboardPage() {
     seo: { name: 'Ottimizzazione SEO & Performance Avanzata', price: 500, selected: false, badge: 'Growth' },
   });
 
-  // Nota Vocale / Strategica del Professionista (Novità di mercato)
+  // Nota Vocale / Strategica del Professionista
   const [audioPitchNote, setAudioPitchNote] = useState('Ciao! Ho strutturato questo preventivo eliminando i rischi tecnici iniziali. Possiamo partire subito.');
 
   // Stati firma Canvas
@@ -66,10 +71,15 @@ export default function DashboardPage() {
     }
   };
 
-  const handleToggleModule = (mod: string) => {
-    setModules(prev => 
-      prev.includes(mod) ? prev.filter(item => item !== mod) : [...prev, mod]
-    );
+  const handleAddModule = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newModuleInput.trim()) return;
+    setModules(prev => [...prev, newModuleInput.trim()]);
+    setNewModuleInput('');
+  };
+
+  const handleRemoveModule = (indexToRemove: number) => {
+    setModules(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const handleToggleAddon = (key: string) => {
@@ -203,7 +213,7 @@ export default function DashboardPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* Box Cliente & Pitch Vocale (Elemento unico sul mercato) */}
+          {/* Box Cliente & Pitch Vocale */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
@@ -254,7 +264,6 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Input Nota Vocale/Strategica visibile in cima al preventivo del cliente */}
             <div className="bg-purple-950/20 border border-purple-800/40 p-4 rounded-xl space-y-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                 <span>🎙️</span> Nota Audio / Messaggio Strategico per il Cliente (Rompi-ghiaccio)
@@ -309,35 +318,52 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Moduli & Add-on (Risk Reversal e Scope Shield) */}
+          {/* Moduli Dinamici & Add-on (Risk Reversal e Scope Shield) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Moduli core */}
+            {/* Moduli Dinamici Inseriti dal Professionista */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
-                  <span>🧩</span> Moduli Core Inclusi
+                  <span>🧩</span> Moduli Core Inclusi (Aggiungi Personalizzati)
                 </h3>
-                <div className="space-y-2.5">
-                  {['Core App & Dashboard', 'Integrazione Stripe Checkout', 'Autenticazione & Utenti', 'Database Supabase Setup'].map((mod) => {
-                    const isSelected = modules.includes(mod);
-                    return (
-                      <div
-                        key={mod}
-                        onClick={() => handleToggleModule(mod)}
-                        className={`cursor-pointer p-3 rounded-xl border text-sm font-medium transition flex items-center justify-between ${
-                          isSelected 
-                            ? 'bg-purple-600/10 border-purple-500/80 text-purple-200' 
-                            : 'bg-[#182234]/40 border-gray-800 text-gray-400 hover:border-gray-700'
-                        }`}
+                
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newModuleInput}
+                    onChange={(e) => setNewModuleInput(e.target.value)}
+                    placeholder="es. API Custom / Pannello Admin"
+                    className="flex-1 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddModule}
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md"
+                  >
+                    + Aggiungi
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                  {modules.map((mod, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#182234]/60 border border-gray-800 p-3 rounded-xl text-sm text-gray-200 flex items-center justify-between"
+                    >
+                      <span className="truncate pr-2">{mod}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveModule(index)}
+                        className="text-gray-500 hover:text-red-400 text-xs font-bold px-2 py-1 transition"
                       >
-                        <span>{mod}</span>
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${isSelected ? 'bg-purple-600 border-purple-500 text-white' : 'border-gray-700'}`}>
-                          {isSelected ? '✓' : ''}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {modules.length === 0 && (
+                    <p className="text-xs text-gray-500 italic text-center py-4">Nessun modulo inserito. Aggiungine almeno uno.</p>
+                  )}
                 </div>
               </div>
             </div>
