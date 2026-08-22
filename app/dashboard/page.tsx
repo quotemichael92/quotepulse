@@ -12,15 +12,16 @@ export default function DashboardPage() {
   const [projectDescription, setProjectDescription] = useState('Architettura piattaforma web ad alte performance & Automazione flussi.');
   const [baseAmount, setBaseAmount] = useState(2800);
   const [timerFomo, setTimerFomo] = useState(24);
-  const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single'); // AGGIUNTO
+  const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single');
   
-  // Moduli dinamici (input libero)
-  const [modules, setModules] = useState<string[]>([
-    'Core App & Dashboard', 
-    'Integrazione Stripe Checkout', 
-    'Autenticazione & Utenti'
+  // Moduli dinamici con nome e prezzo
+  const [modules, setModules] = useState<{ name: string; price: number }[]>([
+    { name: 'Core App & Dashboard', price: 0 }, 
+    { name: 'Integrazione Stripe Checkout', price: 0 }, 
+    { name: 'Autenticazione & Utenti', price: 0 }
   ]);
-  const [newModuleInput, setNewModuleInput] = useState('');
+  const [newModuleName, setNewModuleName] = useState('');
+  const [newModulePrice, setNewModulePrice] = useState<number | ''>('');
   
   // Add-on & Feature di Mercato Uniche (Risk-Reversal e Scope Shield)
   const [addons, setAddons] = useState<{ [key: string]: { name: string; price: number; selected: boolean; badge: string } }>({
@@ -42,9 +43,10 @@ export default function DashboardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Calcolo totale dinamico
+  // Calcolo totale dinamico (Base + Addon + Moduli con prezzo)
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
-  const totalAmount = baseAmount + addonsTotal;
+  const modulesTotal = modules.reduce((acc, curr) => acc + curr.price, 0);
+  const totalAmount = baseAmount + addonsTotal + modulesTotal;
 
   // Funzione per generare contenuti con l'IA
   const handleAiGenerate = async () => {
@@ -73,9 +75,11 @@ export default function DashboardPage() {
 
   const handleAddModule = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newModuleInput.trim()) return;
-    setModules(prev => [...prev, newModuleInput.trim()]);
-    setNewModuleInput('');
+    if (!newModuleName.trim()) return;
+    const priceVal = typeof newModulePrice === 'number' ? newModulePrice : 0;
+    setModules(prev => [...prev, { name: newModuleName.trim(), price: priceVal }]);
+    setNewModuleName('');
+    setNewModulePrice('');
   };
 
   const handleRemoveModule = (indexToRemove: number) => {
@@ -149,11 +153,12 @@ export default function DashboardPage() {
           clientEmail,
           projectDescription,
           amount: totalAmount,
-          timerFomo, // Passa correttamente le ore del timer impostate
+          timerFomo,
+          paymentTerms: paymentTerms === 'split' ? 'Acconto 50% + Saldo 50% fine lavori' : 'Saldo Unico alla Consegna',
           options: [
-            ...modules, 
+            ...modules.map(m => `${m.name} (€${m.price})`), 
             ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
-            `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`, // AGGIUNTO
+            `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`,
             `Nota Vocale/Strategica: "${audioPitchNote}"`
           ],
           signature: signatureDataUrl
@@ -194,7 +199,6 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* SELETTORE ORE TIMER NELL'HEADER */}
           <div className="flex items-center gap-2 bg-purple-900/20 border border-purple-500/30 px-3 py-1.5 rounded-xl">
             <span className="text-xs text-gray-300">Scadenza Blocco (ore):</span>
             <input
@@ -327,7 +331,6 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* AGGIUNTO: Selezione Termini di Pagamento */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Struttura Pagamento per il Cliente</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -351,30 +354,37 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Moduli Dinamici & Add-on */}
+          {/* Moduli Dinamici con Prezzo & Add-on */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Moduli Dinamici Inseriti dal Professionista */}
+            {/* Moduli Dinamici Inseriti dal Professionista con Prezzo */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
-                  <span>🧩</span> Moduli Core Inclusi (Aggiungi Personalizzati)
+                  <span>🧩</span> Moduli Core Inclusi (Con Prezzo)
                 </h3>
                 
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
-                    value={newModuleInput}
-                    onChange={(e) => setNewModuleInput(e.target.value)}
-                    placeholder="es. API Custom / Pannello Admin"
+                    value={newModuleName}
+                    onChange={(e) => setNewModuleName(e.target.value)}
+                    placeholder="Nome modulo"
                     className="flex-1 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                  />
+                  <input
+                    type="number"
+                    value={newModulePrice}
+                    onChange={(e) => setNewModulePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="€ Prezzo"
+                    className="w-24 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
                   />
                   <button
                     type="button"
                     onClick={handleAddModule}
-                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md"
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-md"
                   >
-                    + Aggiungi
+                    +
                   </button>
                 </div>
 
@@ -384,7 +394,10 @@ export default function DashboardPage() {
                       key={index}
                       className="bg-[#182234]/60 border border-gray-800 p-3 rounded-xl text-sm text-gray-200 flex items-center justify-between"
                     >
-                      <span className="truncate pr-2">{mod}</span>
+                      <div className="truncate pr-2">
+                        <span className="font-medium">{mod.name}</span>
+                        <span className="text-xs text-purple-400 font-mono ml-2 font-bold">€{mod.price}</span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveModule(index)}
@@ -478,7 +491,6 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-1.5 italic">La firma autentica istantaneamente il contratto e attiva il canale di comunicazione dedicato nella Deal Room.</p>
             </div>
 
-            {/* AGGIUNTO: Container con Anteprima + Genera Link */}
             <div className="flex flex-col md:flex-row gap-4">
               <button
                 type="button"
