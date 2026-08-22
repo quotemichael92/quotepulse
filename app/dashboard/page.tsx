@@ -458,7 +458,7 @@ export default function DashboardPage() {
               disabled={loading}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
             >
-              {loading ? 'Generazione Deal Room...' : '🚀 Lancia Deal Room Rivoluzionaria & Genera Link'}
+              {loading ? 'Generazione...' : 'Genera Link'}
             </button>
           </div>
 
