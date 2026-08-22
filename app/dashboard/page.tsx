@@ -494,7 +494,24 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row gap-4">
               <button
                 type="button"
-                onClick={() => alert("Simulazione: compila e clicca su Genera Link per testare la Deal Room reale.")}
+                onClick={() => {
+                  const previewData = {
+                    clientName: clientName || 'Cliente di Prova',
+                    clientEmail: clientEmail || 'cliente@email.com',
+                    projectDescription,
+                    amount: totalAmount,
+                    timerFomo,
+                    paymentTerms: paymentTerms === 'split' ? 'Acconto 50% + Saldo 50% fine lavori' : 'Saldo Unico alla Consegna',
+                    options: [
+                      ...modules.map(m => `${m.name} (€${m.price})`), 
+                      ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
+                      `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`,
+                      `Nota Vocale/Strategica: "${audioPitchNote}"`
+                    ]
+                  };
+                  localStorage.setItem('quote_preview', JSON.stringify(previewData));
+                  window.open('/preview', '_blank');
+                }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold py-4 rounded-xl transition duration-200 text-sm border border-gray-700"
               >
                 👁️ Anteprima Cliente
