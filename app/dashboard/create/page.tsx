@@ -1,117 +1,123 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 export default function CreateQuotePage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [clientName, setClientName] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+  const [projectDescription, setProjectDescription] = useState('')
+  const [amount, setAmount] = useState('')
+  const [isAiLoading, setIsAiLoading] = useState(false)
 
-  const [formData, setFormData] = useState({
-    clientName: '',
-    clientEmail: '',
-    projectDescription: '',
-    amount: '',
-  })
+  const handleAiSuggest = async () => {
+    setIsAiLoading(true)
+    try {
+      const res = await fetch('/api/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: projectDescription || `Preventivo per ${clientName || 'cliente'}` }),
+      })
+      const data = await res.json()
+      if (data.success && data.suggestion) {
+        setProjectDescription(data.suggestion)
+      } else {
+        alert(data.error || "Errore IA")
+      }
+    } catch (err) {
+      alert("Errore connessione IA")
+    } finally {
+      setIsAiLoading(false)
+    }
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateQuote = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
-
     try {
       const res = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          clientName,
+          clientEmail,
+          projectDescription,
+          amount: Number(amount)
+        })
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore durante la creazione del preventivo')
+      if (res.ok && data.success && data.quote) {
+        const realId = data.quote.id || data.quote.uuid
+        window.location.href = `/p/${realId}`
+      } else {
+        alert(data.error || "Errore creazione preventivo")
       }
-
-      router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    } catch (err) {
+      alert("Errore di connessione")
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Crea Nuovo Preventivo AI</h1>
-          <Link href="/dashboard" className="text-sm text-slate-400 hover:text-white transition">
-            ← Torna alla Dashboard
-          </Link>
+    <div className="p-8 max-w-4xl mx-auto text-white">
+      <h1 className="text-2xl font-bold mb-6">Crea Deal Room Dinamica</h1>
+      <form onSubmit={handleCreateQuote} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">NOME CLIENTE / AZIENDA</label>
+          <input 
+            type="text" 
+            value={clientName} 
+            onChange={(e) => setClientName(e.target.value)} 
+            required
+            placeholder="es. Giulia Rossi (TechLabs)"
+            className="w-full p-2 border rounded bg-transparent"
+          />
         </div>
-
-        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-          {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg">{error}</div>}
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1">NOME CLIENTE</label>
-            <input
-              type="text"
-              required
-              value={formData.clientName}
-              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="Es. Mario Rossi"
-            />
+        <div>
+          <label className="block text-sm font-medium mb-1">EMAIL DI CONTATTO</label>
+          <input 
+            type="email" 
+            value={clientEmail} 
+            onChange={(e) => setClientEmail(e.target.value)} 
+            required
+            placeholder="giulia@techlabs.it"
+            className="w-full p-2 border rounded bg-transparent"
+          />
+        </div>
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-sm font-medium">OBIETTIVI DEL PROGETTO & DELIVERABLES</label>
+            <button 
+              type="button" 
+              onClick={handleAiSuggest} 
+              disabled={isAiLoading}
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded shadow transition-all disabled:opacity-50"
+            >
+              {isAiLoading ? '✨ Sto pensando...' : '✨ Genera con IA'}
+            </button>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1">EMAIL CLIENTE</label>
-            <input
-              type="email"
-              required
-              value={formData.clientEmail}
-              onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="mario@esempio.it"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1">IMPORTO (€)</label>
-            <input
-              type="number"
-              required
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="1200"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1">DESCRIZIONE PROGETTO</label>
-            <textarea
-              required
-              rows={4}
-              value={formData.projectDescription}
-              onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="Descrivi brevemente il progetto da realizzare..."
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition"
-          >
-            {loading ? 'Generazione in corso...' : 'Genera Preventivo'}
-          </button>
-        </form>
-      </div>
+          <textarea 
+            value={projectDescription} 
+            onChange={(e) => setProjectDescription(e.target.value)} 
+            rows={4}
+            placeholder="Architettura piattaforma web ad alte performance & Automazione flussi."
+            className="w-full p-2 border rounded bg-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">IMPORTO (€)</label>
+          <input 
+            type="number" 
+            value={amount} 
+            onChange={(e) => setAmount(e.target.value)} 
+            required
+            className="w-full p-2 border rounded bg-transparent"
+          />
+        </div>
+        <button 
+          type="submit" 
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold"
+        >
+          Crea Deal Room
+        </button>
+      </form>
     </div>
   )
 }
