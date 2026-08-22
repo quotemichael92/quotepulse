@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [projectDescription, setProjectDescription] = useState('Architettura piattaforma web ad alte performance & Automazione flussi.');
   const [baseAmount, setBaseAmount] = useState(2800);
   const [timerFomo, setTimerFomo] = useState(24);
+  const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single'); // AGGIUNTO
   
   // Moduli dinamici (input libero)
   const [modules, setModules] = useState<string[]>([
@@ -152,6 +153,7 @@ export default function DashboardPage() {
           options: [
             ...modules, 
             ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
+            `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`, // AGGIUNTO
             `Nota Vocale/Strategica: "${audioPitchNote}"`
           ],
           signature: signatureDataUrl
@@ -324,6 +326,29 @@ export default function DashboardPage() {
                 className="w-full accent-purple-500 cursor-pointer h-2 bg-gray-700 rounded-lg"
               />
             </div>
+
+            {/* AGGIUNTO: Selezione Termini di Pagamento */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Struttura Pagamento per il Cliente</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPaymentTerms('single')}
+                  className={`p-3 rounded-xl border text-left text-xs transition flex flex-col gap-1 ${paymentTerms === 'single' ? 'bg-purple-600/20 border-purple-500 text-purple-200' : 'bg-[#182234]/40 border-gray-800 text-gray-400'}`}
+                >
+                  <span className="font-bold">Saldo Unico alla Consegna</span>
+                  <span className="text-[11px] text-gray-400">Il pagamento viene effettuato a completamento del lavoro.</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentTerms('split')}
+                  className={`p-3 rounded-xl border text-left text-xs transition flex flex-col gap-1 ${paymentTerms === 'split' ? 'bg-purple-600/20 border-purple-500 text-purple-200' : 'bg-[#182234]/40 border-gray-800 text-gray-400'}`}
+                >
+                  <span className="font-bold">Acconto 50% + Saldo 50%</span>
+                  <span className="text-[11px] text-gray-400">Metà all'approvazione e metà a chiusura progetto.</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Moduli Dinamici & Add-on */}
@@ -453,13 +478,24 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-1.5 italic">La firma autentica istantaneamente il contratto e attiva il canale di comunicazione dedicato nella Deal Room.</p>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
-            >
-              {loading ? 'Generazione...' : 'Genera Link'}
-            </button>
+            {/* AGGIUNTO: Container con Anteprima + Genera Link */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <button
+                type="button"
+                onClick={() => alert("Simulazione: compila e clicca su Genera Link per testare la Deal Room reale.")}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold py-4 rounded-xl transition duration-200 text-sm border border-gray-700"
+              >
+                👁️ Anteprima Cliente
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-2 w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
+              >
+                {loading ? 'Generazione...' : 'Genera Link'}
+              </button>
+            </div>
           </div>
 
         </form>
