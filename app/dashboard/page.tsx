@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
   const totalAmount = baseAmount + addonsTotal;
 
-  // Funzione per generare contenuti con l'IA (corretta per evitare blocchi e l'errore rosso)
+  // Funzione per generare contenuti con l'IA
   const handleAiGenerate = async () => {
     setAiLoading(true);
     setError('');
@@ -148,7 +148,7 @@ export default function DashboardPage() {
           clientEmail,
           projectDescription,
           amount: totalAmount,
-          timerFomo,
+          timerFomo, // Passa correttamente le ore del timer impostate
           options: [
             ...modules, 
             ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
@@ -191,9 +191,18 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-400">Trattative interattive anti-ghosting con Risk-Reversal integrato</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-purple-900/20 border border-purple-500/30 px-4 py-2 rounded-xl">
-            <span className="text-xs text-gray-300">Scadenza Blocco Prezzo:</span>
-            <span className="text-purple-400 font-mono font-bold text-sm">{timerFomo}:00:00</span>
+          
+          {/* SELETTORE ORE TIMER NELL'HEADER */}
+          <div className="flex items-center gap-2 bg-purple-900/20 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+            <span className="text-xs text-gray-300">Scadenza Blocco (ore):</span>
+            <input
+              type="number"
+              min="1"
+              max="168"
+              value={timerFomo}
+              onChange={(e) => setTimerFomo(Math.max(1, Math.min(168, Number(e.target.value))))}
+              className="w-14 bg-[#05070b] border border-purple-500/40 rounded-lg text-purple-300 font-mono font-bold text-xs text-center px-1 py-1 focus:outline-none focus:border-purple-400"
+            />
           </div>
         </div>
 
