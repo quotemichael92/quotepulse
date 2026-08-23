@@ -110,6 +110,8 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           <label className="block text-sm font-medium mb-1">Importo (€)</label>
           <input 
             type="number" 
+            min="100"
+            step="1"
             value={amount} 
             onChange={(e) => setAmount(e.target.value)} 
             required
