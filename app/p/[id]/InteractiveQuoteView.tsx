@@ -67,15 +67,29 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' }).catch(() => {})
   }, [quoteId])
 
-  const initialFomoHours = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? 24
+  // Lettura ore FOMO reali dal database (fomo_hours o fomoHours) con fallback pulito
+  const initialFomoHours = Number(
+    quoteData?.fomo_hours ?? 
+    quoteData?.fomoHours ?? 
+    initialData?.fomo_hours ?? 
+    initialData?.fomoHours ?? 
+    24
+  )
+
   const [fomoHours, setFomoHours] = useState<number>(initialFomoHours)
   const [timeLeft, setTimeLeft] = useState({ hours: initialFomoHours, minutes: 0, seconds: 0 })
 
   useEffect(() => {
-    const hoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? 24
+    const hoursFromDb = Number(
+      quoteData?.fomo_hours ?? 
+      quoteData?.fomoHours ?? 
+      initialData?.fomo_hours ?? 
+      initialData?.fomoHours ?? 
+      24
+    )
     setFomoHours(hoursFromDb)
     setTimeLeft(prev => ({ ...prev, hours: hoursFromDb }))
-  }, [quoteData])
+  }, [quoteData, initialData])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,7 +109,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     setTimeLeft(prev => ({ ...prev, hours: validated, minutes: 0, seconds: 0 }))
   }
 
-  // Estrazione dati reali dal database
   const clientName = quoteData?.client_name || quoteData?.clientName || 'Cliente'
   const clientEmail = quoteData?.client_email || quoteData?.clientEmail || ''
   const title = `Proposta commerciale per ${clientName}`
@@ -105,8 +118,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Acconto 50% + Saldo 50% fine lavori'
 
-  // Gestione dinamica delle opzioni / moduli salvati nel database o stringhe
-  const rawOptions = quoteData?.options || []
+  // Gestione dinamica delle opzioni con estrazione corretta dei prezzi reali
+  const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
         if (typeof opt === 'string') {
@@ -114,16 +127,16 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             id: `opt-${index}`,
             title: opt,
             description: 'Modulo opzionale incluso nella proposta',
-            price: 0,
-            days: 0
+            price: 150,
+            days: 1
           }
         }
         return {
           id: opt.id || `opt-${index}`,
           title: opt.title || opt.name || 'Opzione',
           description: opt.description || '',
-          price: Number(opt.price || 0),
-          days: Number(opt.days || 0)
+          price: Number(opt.price ?? opt.cost ?? 150),
+          days: Number(opt.days || 1)
         }
       })
     : []
@@ -133,13 +146,11 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Seleziona automaticamente tutte le opzioni di default se presenti, oppure gestiscile interattivamente
   useEffect(() => {
     if (basePrice > 0) {
       setBudgetLimit(basePrice + 500)
     }
     if (options.length > 0 && selectedOptions.length === 0) {
-      // Se vuoi che partano selezionate o meno
       setSelectedOptions(options.map(o => o.id))
     }
   }, [basePrice, options.length])
