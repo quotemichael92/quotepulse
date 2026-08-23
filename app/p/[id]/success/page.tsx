@@ -7,15 +7,20 @@ import Link from 'next/link'
 export default function QuoteSuccessPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const quoteId = searchParams.get('quoteId') || searchParams.get('id')
   const [countdown, setCountdown] = useState(4)
 
-  // Timer di reindirizzamento automatico dopo pochi secondi
+  // Timer di reindirizzamento automatico alla Deal Room o alla home
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          router.push('/')
+          if (quoteId) {
+            router.push(`/p/${quoteId}`)
+          } else {
+            router.push('/')
+          }
           return 0
         }
         return prev - 1
@@ -23,7 +28,7 @@ export default function QuoteSuccessPage() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [router])
+  }, [router, quoteId])
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
@@ -35,7 +40,7 @@ export default function QuoteSuccessPage() {
         <h1 className="text-2xl font-bold text-white">Preventivo Accettato!</h1>
         
         <p className="text-slate-400 text-sm">
-          Grazie! La tua accettazione e la firma sono state registrate con successo. Riceverai a breve una conferma.
+          Grazie! La tua accettazione e la firma sono state registrate con successo. Verrai reindirizzato alla Deal Room.
         </p>
 
         <div className="text-xs text-slate-400">
@@ -44,10 +49,10 @@ export default function QuoteSuccessPage() {
 
         <div className="pt-4 border-t border-slate-800 space-y-3">
           <Link 
-            href="/"
-            className="block w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold py-2.5 px-5 rounded-lg transition text-center"
+            href={quoteId ? `/p/${quoteId}` : '/'}
+            className="block w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition text-center shadow-lg"
           >
-            Torna alla Home
+            {quoteId ? 'Vai subito alla Deal Room' : 'Torna alla Home'}
           </Link>
         </div>
       </div>
