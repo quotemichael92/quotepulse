@@ -13,17 +13,10 @@ interface Option {
 
 interface InteractiveQuoteViewProps {
   quoteId?: string
-  initialData?: {
-    title?: string
-    basePrice?: number
-    baseDays?: number
-    options?: Option[]
-    fomoHours?: number
-  }
+  initialData?: any
 }
 
 export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData }: InteractiveQuoteViewProps) {
-  // Estrazione sicura dell'ID dalla URL attuale
   const [quoteId, setQuoteId] = useState<string>(() => {
     if (propQuoteId && propQuoteId !== 'undefined' && propQuoteId !== 'null' && propQuoteId !== 'default') {
       return propQuoteId
@@ -74,15 +67,15 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' }).catch(() => {})
   }, [quoteId])
 
-  const initialFomoHours = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 24
+  const initialFomoHours = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? 24
   const [fomoHours, setFomoHours] = useState<number>(initialFomoHours)
   const [timeLeft, setTimeLeft] = useState({ hours: initialFomoHours, minutes: 0, seconds: 0 })
 
   useEffect(() => {
-    const hoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? initialData?.fomoHours ?? 24
+    const hoursFromDb = quoteData?.fomo_hours ?? quoteData?.fomoHours ?? 24
     setFomoHours(hoursFromDb)
     setTimeLeft(prev => ({ ...prev, hours: hoursFromDb }))
-  }, [quoteData, initialData])
+  }, [quoteData])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -102,47 +95,54 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     setTimeLeft(prev => ({ ...prev, hours: validated, minutes: 0, seconds: 0 }))
   }
 
-  const clientName = quoteData?.client_name || 'Cliente'
+  // Estrazione dati reali dal database
+  const clientName = quoteData?.client_name || quoteData?.clientName || 'Cliente'
+  const clientEmail = quoteData?.client_email || quoteData?.clientEmail || ''
   const title = `Proposta commerciale per ${clientName}`
-  const descriptionText = quoteData?.project_description || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
+  const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? 1000)
-  const baseDays = Number(quoteData?.base_days ?? 10)
+  const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? quoteData?.basePrice ?? 1000)
+  const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
+  const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Acconto 50% + Saldo 50% fine lavori'
 
-  const options: Option[] = quoteData?.options ?? initialData?.options ?? [
-    {
-      id: 'opt-1',
-      title: 'Integrazione Stripe Checkout',
-      description: 'Gestione pagamenti automatizzata e ricevute fiscali',
-      price: 250,
-      days: 2,
-    },
-    {
-      id: 'opt-2',
-      title: 'Supporto Prioritario 24/7',
-      description: 'Assistenza dedicata e SLA garanzia uptime post-lancio',
-      price: 150,
-      days: 0,
-    },
-    {
-      id: 'opt-3',
-      title: 'Ottimizzazione SEO & Performance Advanced',
-      description: 'Punteggio 95+ su Google PageSpeed e setup indicizzazione Meta',
-      price: 300,
-      days: 3,
-    },
-  ]
+  // Gestione dinamica delle opzioni / moduli salvati nel database o stringhe
+  const rawOptions = quoteData?.options || []
+  const options: Option[] = Array.isArray(rawOptions) 
+    ? rawOptions.map((opt: any, index: number) => {
+        if (typeof opt === 'string') {
+          return {
+            id: `opt-${index}`,
+            title: opt,
+            description: 'Modulo opzionale incluso nella proposta',
+            price: 0,
+            days: 0
+          }
+        }
+        return {
+          id: opt.id || `opt-${index}`,
+          title: opt.title || opt.name || 'Opzione',
+          description: opt.description || '',
+          price: Number(opt.price || 0),
+          days: Number(opt.days || 0)
+        }
+      })
+    : []
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [budgetLimit, setBudgetLimit] = useState(basePrice + 500)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Seleziona automaticamente tutte le opzioni di default se presenti, oppure gestiscile interattivamente
   useEffect(() => {
     if (basePrice > 0) {
       setBudgetLimit(basePrice + 500)
     }
-  }, [basePrice])
+    if (options.length > 0 && selectedOptions.length === 0) {
+      // Se vuoi che partano selezionate o meno
+      setSelectedOptions(options.map(o => o.id))
+    }
+  }, [basePrice, options.length])
 
   const toggleOption = (id: string) => {
     setSelectedOptions((prev) =>
@@ -309,6 +309,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             <div>
               <h1 className="text-2xl font-bold text-white tracking-wide">Preventivo Interattivo</h1>
               <p className="text-slate-300 text-sm mt-1">{title}</p>
+              {clientEmail && <p className="text-xs text-slate-400">{clientEmail}</p>}
             </div>
             <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs px-3 py-1 rounded-full font-semibold shrink-0">
               Personalizzato per {clientName}
@@ -355,38 +356,46 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
         </div>
 
         {/* OPZIONI */}
-        <div>
-          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">MODULI & OPZIONI AGGIUNTIVE</span>
-          <div className="space-y-2.5">
-            {options.map((opt) => {
-              const isSelected = selectedOptions.includes(opt.id)
-              return (
-                <div
-                  key={opt.id}
-                  onClick={() => toggleOption(opt.id)}
-                  className={`cursor-pointer rounded-xl p-3.5 border transition-all flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-[#1e345e]/80 border-[#3b82f6] shadow-lg shadow-blue-500/5'
-                      : 'bg-[#182744]/40 border-[#273d67] hover:border-[#335288]'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      readOnly
-                      className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0d1424] border-slate-600 cursor-pointer"
-                    />
-                    <div>
-                      <h4 className="font-semibold text-xs sm:text-sm text-white">{opt.title}</h4>
-                      <p className="text-[11px] text-slate-400">{opt.description}</p>
+        {options.length > 0 && (
+          <div>
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block mb-2">MODULI & OPZIONI AGGIUNTIVE</span>
+            <div className="space-y-2.5">
+              {options.map((opt) => {
+                const isSelected = selectedOptions.includes(opt.id)
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() => toggleOption(opt.id)}
+                    className={`cursor-pointer rounded-xl p-3.5 border transition-all flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-[#1e345e]/80 border-[#3b82f6] shadow-lg shadow-blue-500/5'
+                        : 'bg-[#182744]/40 border-[#273d67] hover:border-[#335288]'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        readOnly
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0d1424] border-slate-600 cursor-pointer"
+                      />
+                      <div>
+                        <h4 className="font-semibold text-xs sm:text-sm text-white">{opt.title}</h4>
+                        <p className="text-[11px] text-slate-400">{opt.description}</p>
+                      </div>
                     </div>
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">+€{opt.price}</span>
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">+€{opt.price}</span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
+        )}
+
+        {/* CONDIZIONI DI PAGAMENTO */}
+        <div className="bg-[#182744]/40 border border-[#273d67] p-4 rounded-xl flex justify-between items-center text-xs">
+          <span className="text-slate-400">Modalità di Pagamento:</span>
+          <span className="font-bold text-blue-300">{paymentTerms}</span>
         </div>
 
         {/* FIRMA */}
