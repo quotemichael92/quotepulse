@@ -67,7 +67,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     fetch(`/api/quotes/${quoteId}/viewed`, { method: 'POST' }).catch(() => {})
   }, [quoteId])
 
-  // Lettura ore FOMO reali dal database (fomo_hours o fomoHours) con fallback pulito
   const initialFomoHours = Number(
     quoteData?.fomo_hours ?? 
     quoteData?.fomoHours ?? 
@@ -116,9 +115,9 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   
   const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? quoteData?.basePrice ?? 1000)
   const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
-  const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Acconto 50% + Saldo 50% fine lavori'
+  const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
-  // Gestione dinamica delle opzioni con estrazione corretta dei prezzi reali
+  // Estrazione e normalizzazione delle opzioni dal DB
   const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
@@ -136,7 +135,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           title: opt.title || opt.name || 'Opzione',
           description: opt.description || '',
           price: Number(opt.price ?? opt.cost ?? 150),
-          days: Number(opt.days || 1)
+          days: Number(opt.days ?? opt.deliveryDays ?? 1)
         }
       })
     : []
@@ -145,7 +144,16 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const [budgetLimit, setBudgetLimit] = useState(basePrice + 500)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAccepted, setIsAccepted] = useState(false)
 
+  // Stati per la gestione della nota audio opzionale
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  // Inizializza tutte le opzioni come selezionate di default
   useEffect(() => {
     if (basePrice > 0) {
       setBudgetLimit(basePrice + 500)
@@ -161,6 +169,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     )
   }
 
+  // Calcolo totale prezzo e giorni sommando le opzioni attive
   const totalAmount = basePrice + options
     .filter((opt) => selectedOptions.includes(opt.id))
     .reduce((sum, opt) => sum + opt.price, 0)
@@ -177,11 +186,52 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
   const triggerConfetti = () => {
     confetti({
-      particleCount: 80,
-      spread: 60,
+      particleCount: 90,
+      spread: 70,
       origin: { y: 0.8 },
-      colors: ['#3b82f6', '#10b981', '#f59e0b'],
+      colors: ['#3b82f6', '#10b981', '#f59e0b', '#6366f1'],
     })
+  }
+
+  // Gestione Registrazione Audio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(audioBlob)
+        setAudioUrl(URL.createObjectURL(audioBlob))
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Errore accesso microfono:', err)
+      alert('Impossibile accedere al microfono. Controlla i permessi del browser.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const deleteAudio = () => {
+    setAudioBlob(null)
+    setAudioUrl(null)
   }
 
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -237,7 +287,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     setHasSignature(false)
   }
 
-  const handleAcceptAndPay = async () => {
+  const handleAcceptQuote = async () => {
     if (!hasSignature || isSubmitting) return
     if (!quoteId) {
       alert('ID preventivo mancante.')
@@ -247,24 +297,34 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     setIsSubmitting(true)
 
     try {
-      const res = await fetch('/api/checkout', {
+      const formData = new FormData()
+      formData.append('quoteId', quoteId)
+      formData.append('amount', totalAmount.toString())
+      formData.append('selectedOptions', JSON.stringify(selectedOptions))
+      formData.append('clientNotes', clientNotes)
+      
+      if (audioBlob) {
+        formData.append('audioNote', audioBlob, 'nota-audio-cliente.webm')
+      }
+
+      const canvas = canvasRef.current
+      if (canvas) {
+        const signatureDataUrl = canvas.toDataURL('image/png')
+        formData.append('signature', signatureDataUrl)
+      }
+
+      const res = await fetch(`/api/quotes/${quoteId}/accept`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteId,
-          amount: totalAmount,
-          selectedOptions,
-          clientNotes,
-          title,
-        }),
+        body: formData,
       })
 
       const data = await res.json()
 
-      if (data?.url) {
-        window.location.href = data.url
+      if (res.ok && data.success) {
+        setIsAccepted(true)
+        triggerConfetti()
       } else {
-        alert(data.error || 'Errore durante la creazione della sessione di pagamento.')
+        alert(data.error || 'Errore durante la conferma del preventivo.')
         setIsSubmitting(false)
       }
     } catch (err) {
@@ -282,11 +342,27 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     )
   }
 
+  if (isAccepted) {
+    return (
+      <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#131f37] border border-[#23385d] rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+            ✓
+          </div>
+          <h2 className="text-xl font-bold text-white">Preventivo Accettato con Successo!</h2>
+          <p className="text-slate-300 text-sm">
+            Grazie {clientName}. Abbiamo registrato la tua firma e le tue preferenze. Ti contatteremo a breve per procedere con l'avvio dei lavori.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
         
-        {/* FOMO TIMER & SETTING */}
+        {/* FOMO TIMER */}
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center space-x-2 text-amber-400 font-medium text-xs sm:text-sm">
             <span>🔥</span>
@@ -387,12 +463,12 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        readOnly
+                        onChange={() => {}} 
                         className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0d1424] border-slate-600 cursor-pointer"
                       />
                       <div>
                         <h4 className="font-semibold text-xs sm:text-sm text-white">{opt.title}</h4>
-                        <p className="text-[11px] text-slate-400">{opt.description}</p>
+                        <p className="text-[11px] text-slate-400">{opt.description} ({opt.days} {opt.days === 1 ? 'giorno' : 'giorni'})</p>
                       </div>
                     </div>
                     <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">+€{opt.price}</span>
@@ -403,16 +479,72 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         )}
 
+        {/* NOTA AUDIO OPZIONALE E NOTE TESTUALI */}
+        <div className="space-y-3">
+          <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">NOTE O MESSAGGIO AUDIO PER IL PROGETTO</span>
+          
+          <div className="bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 space-y-3">
+            <textarea
+              rows={2}
+              value={clientNotes}
+              onChange={(e) => setClientNotes(e.target.value)}
+              placeholder="Aggiungi eventuali note o richieste particolari..."
+              className="w-full bg-[#0d1424] border border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+            />
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800">
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                {!isRecording && !audioUrl && (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 text-xs px-3 py-2 rounded-lg font-medium flex items-center space-x-1.5 transition-all"
+                  >
+                    <span>🎙️</span>
+                    <span>Registra nota vocale</span>
+                  </button>
+                )}
+
+                {isRecording && (
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="bg-rose-600 text-white animate-pulse text-xs px-3 py-2 rounded-lg font-medium flex items-center space-x-1.5"
+                  >
+                    <span>⏹️</span>
+                    <span>Ferma registrazione</span>
+                  </button>
+                )}
+
+                {audioUrl && (
+                  <div className="flex items-center space-x-2">
+                    <audio src={audioUrl} controls className="h-8 max-w-[200px]" />
+                    <button
+                      type="button"
+                      onClick={deleteAudio}
+                      className="text-xs text-rose-400 hover:underline"
+                    >
+                      Elimina audio
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <span className="text-[11px] text-slate-400">Opzionale</span>
+            </div>
+          </div>
+        </div>
+
         {/* CONDIZIONI DI PAGAMENTO */}
         <div className="bg-[#182744]/40 border border-[#273d67] p-4 rounded-xl flex justify-between items-center text-xs">
-          <span className="text-slate-400">Modalità di Pagamento:</span>
+          <span className="text-slate-400">Condizioni commerciali:</span>
           <span className="font-bold text-blue-300">{paymentTerms}</span>
         </div>
 
         {/* FIRMA */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <label className="text-xs font-semibold text-slate-300 block">Firma nel riquadro sottostante per accettare</label>
+            <label className="text-xs font-semibold text-slate-300 block">Firma nel riquadro sottostante per accettare il preventivo</label>
             {hasSignature && (
               <button type="button" onClick={clearCanvas} className="text-xs text-rose-400 hover:underline">
                 Cancella firma
@@ -441,20 +573,20 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* PAY BUTTON */}
+        {/* CONFERMA E ACCETTAZIONE (SENZA STRIPE) */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-[#23385d] gap-4">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Totale da Pagare</p>
+            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Totale Preventivo</p>
             <p className="text-3xl font-extrabold text-white">€{totalAmount}</p>
           </div>
 
           <button
             type="button"
-            onClick={handleAcceptAndPay}
+            onClick={handleAcceptQuote}
             disabled={isSubmitting || !hasSignature}
             className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-40 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all shadow-lg cursor-pointer disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Apertura Stripe...' : 'Firma e Paga con Stripe'}
+            {isSubmitting ? 'Invio in corso...' : 'Conferma e Accetta Preventivo'}
           </button>
         </div>
 
