@@ -1,4 +1,11 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js'; // Assicurati di usare il client Supabase configurato nel progetto
+
+// Inizializza il client Supabase (o usa il client che hai già nel progetto)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(
   request: Request,
@@ -6,22 +13,29 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // Qui recuperi i dati del preventivo dal tuo database o dallo storage in base all'ID (`id`)
-  // Per ora usiamo dati di esempio mockati:
+  // Recupera il preventivo reale dal database usando l'ID
+  const { data: quote, error } = await supabase
+    .from('quotes') // Sostituisci 'quotes' con il nome esatto della tua tabella su Supabase se è diverso
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !quote) {
+    return new NextResponse('Preventivo non trovato', { status: 404 });
+  }
+
+  // Usiamo i dati reali presi dal database
   const quoteData = {
-    id,
-    clientName: "Mario Rossi",
-    projectName: "Sviluppo Piattaforma SaaS",
-    totalAmount: "€ 2,500.00",
-    date: new Date().toLocaleDateString('it-IT'),
-    items: [
-      { description: "Analisi e UX/UI Design", price: "€ 800.00" },
-      { description: "Sviluppo Frontend & Backend (Next.js)", price: "€ 1,500.00" },
-      { description: "Setup Database & Deploy", price: "€ 200.00" },
+    id: quote.id,
+    clientName: quote.client_name || quote.clientName || "Cliente",
+    projectName: quote.project_description || quote.projectName || "Progetto SaaS",
+    totalAmount: `€ ${Number(quote.amount || quote.total_amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+    date: new Date(quote.created_at || Date.now()).toLocaleDateString('it-IT'),
+    items: quote.items || [
+      { description: quote.project_description || "Sviluppo e configurazione piattaforma", price: `€ ${Number(quote.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}` }
     ]
   };
 
-  // Restituiamo una pagina HTML pulita, progettata per attivare automaticamente il dialogo di stampa del browser (PDF)
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="it">
@@ -57,12 +71,17 @@ export async function GET(
           </tr>
         </thead>
         <tbody>
-          ${quoteData.items.map(item => `
+          ${Array.isArray(quoteData.items) ? quoteData.items.map((item: any) => `
             <tr>
-              <td>${item.description}</td>
-              <td style="text-align: right;">${item.price}</td>
+              <td>${item.description || item}</td>
+              <td style="text-align: right;">${item.price || quoteData.totalAmount}</td>
             </tr>
-          `).join('')}
+          `).join('') : `
+            <tr>
+              <td>${quoteData.projectName}</td>
+              <td style="text-align: right;">${quoteData.totalAmount}</td>
+            </tr>
+          `}
         </tbody>
       </table>
       <div class="total">
@@ -72,7 +91,6 @@ export async function GET(
         <button onclick="window.print()" style="padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">🖨️ Stampa / Salva come PDF</button>
       </div>
       <script>
-        // Avvia automaticamente la finestra di stampa al caricamento (opzionale)
         window.onload = function() { window.print(); }
       </script>
     </body>
