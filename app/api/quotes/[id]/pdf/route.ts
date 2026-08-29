@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
 
   // Qui recuperi i dati del preventivo dal tuo database o dallo storage in base all'ID (`id`)
   // Per ora usiamo dati di esempio mockati:
