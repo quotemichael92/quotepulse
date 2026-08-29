@@ -322,7 +322,7 @@ export default function DashboardPage() {
               </div>
               <input
                 type="range"
-                min="1000"
+                min="0"
                 max="10000"
                 step="100"
                 value={baseAmount}
@@ -360,9 +360,12 @@ export default function DashboardPage() {
             {/* Moduli Dinamici Inseriti dal Professionista con Prezzo */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-1 flex items-center gap-2">
                   <span>🧩</span> Moduli Core Inclusi (Con Prezzo)
                 </h3>
+                <p className="text-xs text-gray-400 mb-4">
+                  Questi moduli rappresentano le fondamenta tecniche e funzionali incluse nell'architettura iniziale del progetto, garantendo scalabilità e performance fin dal Day 1.
+                </p>
                 
                 <div className="flex gap-2 mb-4">
                   <input
