@@ -343,15 +343,23 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   }
 
   if (isAccepted) {
+    setTimeout(() => {
+      window.open(`/api/quotes/${quoteId}/pdf`, '_blank')
+      window.location.href = '/'
+    }, 3000)
+
     return (
       <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-[#131f37] border border-[#23385d] rounded-2xl p-8 text-center space-y-4 shadow-2xl">
-          <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+          <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
             ✓
           </div>
-          <h2 className="text-xl font-bold text-white">Preventivo Accettato con Successo!</h2>
+          <h2 className="text-xl font-bold text-white">Preventivo Accettato!</h2>
           <p className="text-slate-300 text-sm">
-            Grazie {clientName}. Abbiamo registrato la tua firma e le tue preferenze. Ti contatteremo a breve per procedere con l'avvio dei lavori.
+            Grazie {clientName}. Firma e preferenze registrate con successo.
+          </p>
+          <p className="text-xs text-blue-400 animate-pulse pt-2">
+            Generazione PDF e reindirizzamento in corso...
           </p>
         </div>
       </div>
@@ -573,7 +581,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* CONFERMA E ACCETTAZIONE (SENZA STRIPE) */}
+        {/* CONFERMA E ACCETTAZIONE */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-[#23385d] gap-4">
           <div>
             <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Totale Preventivo</p>
