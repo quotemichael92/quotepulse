@@ -114,27 +114,39 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
   const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? quoteData?.basePrice ?? 1000)
-  const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
+  const initialBaseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
+  const [baseDays, setBaseDays] = useState<number>(initialBaseDays)
+
+  // Sincronizza i giorni base se cambiano i dati iniziali/DB
+  useEffect(() => {
+    const dbDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? initialData?.base_days ?? initialData?.baseDays ?? 10)
+    setBaseDays(dbDays)
+  }, [quoteData, initialData])
+
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
-  // Estrazione e normalizzazione delle opzioni dal DB
+  // Estrazione e normalizzazione delle opzioni dal DB (prezzo 0 per acconto e nota vocale)
   const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
         if (typeof opt === 'string') {
+          const lowerOpt = opt.toLowerCase()
+          const isZeroPrice = lowerOpt.includes('acconto') || lowerOpt.includes('nota') || lowerOpt.includes('vocale')
           return {
             id: `opt-${index}`,
             title: opt,
             description: 'Modulo opzionale incluso nella proposta',
-            price: 150,
+            price: isZeroPrice ? 0 : 150,
             days: 1
           }
         }
+        const titleStr = (opt.title || opt.name || 'Opzione').toLowerCase()
+        const isZeroPrice = titleStr.includes('acconto') || titleStr.includes('nota') || titleStr.includes('vocale')
         return {
           id: opt.id || `opt-${index}`,
           title: opt.title || opt.name || 'Opzione',
           description: opt.description || '',
-          price: Number(opt.price ?? opt.cost ?? 150),
+          price: isZeroPrice ? 0 : Number(opt.price ?? opt.cost ?? 150),
           days: Number(opt.days ?? opt.deliveryDays ?? 1)
         }
       })
@@ -434,7 +446,17 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
           <div className="bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 flex flex-col justify-center items-center text-center">
             <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Consegna Stimata</span>
-            <span className="text-xl font-extrabold text-blue-400 mt-0.5">{totalDays} Giorni Lavorativi</span>
+            <div className="flex items-center space-x-1.5 mt-1">
+              <input
+                type="number"
+                min="1"
+                max="365"
+                value={baseDays}
+                onChange={(e) => setBaseDays(Math.max(1, Number(e.target.value)))}
+                className="w-14 bg-[#0d1424] border border-blue-500/50 rounded-lg text-blue-400 font-extrabold text-lg text-center focus:outline-none focus:border-blue-400 py-0.5"
+              />
+              <span className="text-xs font-semibold text-slate-300">Giorni</span>
+            </div>
           </div>
         </div>
 
@@ -479,7 +501,9 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                         <p className="text-[11px] text-slate-400">{opt.description} ({opt.days} {opt.days === 1 ? 'giorno' : 'giorni'})</p>
                       </div>
                     </div>
-                    <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">+€{opt.price}</span>
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">
+                      {opt.price === 0 ? 'Incluso' : `+€{opt.price}`}
+                    </span>
                   </div>
                 )
               })}
