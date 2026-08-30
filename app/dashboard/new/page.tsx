@@ -25,11 +25,8 @@ export default function DashboardPage() {
   const [timerFomo, setTimerFomo] = useState(24);
   const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single');
   
-  const [modules, setModules] = useState<ModuleItem[]>([
-    { name: 'Core App & Dashboard', price: 0 }, 
-    { name: 'Integrazione Stripe Checkout', price: 0 }, 
-    { name: 'Autenticazione & Utenti', price: 0 }
-  ]);
+  // Lista moduli core vuota di partenza
+  const [modules, setModules] = useState<ModuleItem[]>([]);
   const [newModuleName, setNewModuleName] = useState('');
   const [newModulePrice, setNewModulePrice] = useState<number | ''>('');
   
@@ -366,7 +363,7 @@ export default function DashboardPage() {
                   <span>🧩</span> Moduli Core Inclusi (Con Prezzo)
                 </h3>
                 <p className="text-xs text-gray-400 mb-4">
-                  Questi moduli rappresentano le fondamenta tecniche e funzionali incluse nell'architettura iniziale del progetto, garantendo scalabilità e performance fin dal Day 1.
+                  Aggiungi i moduli personalizzati necessari per questo specifico progetto.
                 </p>
                 
                 <div className="flex gap-2 mb-4">
@@ -374,14 +371,14 @@ export default function DashboardPage() {
                     type="text"
                     value={newModuleName}
                     onChange={(e) => setNewModuleName(e.target.value)}
-                    placeholder="Nome module"
+                    placeholder="Nome modulo"
                     className="flex-1 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
                   />
                   <input
                     type="number"
                     value={newModulePrice}
                     onChange={(e) => setNewModulePrice(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="€ Prezz"
+                    placeholder="€ Prezzo"
                     className="w-24 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
                   />
                   <button
