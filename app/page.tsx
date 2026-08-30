@@ -79,13 +79,16 @@ export default function Home() {
 
             <ul className="space-y-3.5 text-sm text-gray-300 mb-8">
               <li className="flex items-center gap-2.5">
-                <span className="text-purple-400 font-bold">✓</span> Preventivi Interattivi illimitati
+                <span className="text-purple-400 font-bold">✓</span> Preventivi Interattivi essenziali
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="text-purple-400 font-bold">✓</span> Firma Digitale Canvas integrata
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="text-purple-400 font-bold">✓</span> Tracciamento apertura Deal Room
+              </li>
+              <li className="flex items-center gap-2.5 text-gray-500">
+                <span className="font-bold">✕</span> Note Audio/Video & Pitch personalizzati
               </li>
             </ul>
           </div>
@@ -126,6 +129,9 @@ export default function Home() {
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="text-emerald-400 font-bold">✓</span> Add-on Risk-Reversal & Scope Shield
+              </li>
+              <li className="flex items-center gap-2.5">
+                <span className="text-emerald-400 font-bold">✓</span> Rimozione branding e White-Label avanzato
               </li>
             </ul>
           </div>
