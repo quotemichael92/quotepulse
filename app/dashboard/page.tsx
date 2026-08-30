@@ -34,10 +34,10 @@ export default function DashboardPage() {
   const [newModulePrice, setNewModulePrice] = useState<number | ''>('');
   
   const [addons, setAddons] = useState<Record<string, AddonItem>>({
-    priority: { name: 'SLA Intervento Garantito (< 4h)', price: 400, selected: true, badge: 'High Priority' },
-    guarantee: { name: 'Garanzia Risultato Milestone (Risk-Free)', price: 600, selected: false, badge: 'Market Unique' },
-    scopeShield: { name: 'Pacchetto Scope Creep (3 Modifiche Extra incluse)', price: 450, selected: false, badge: 'Zero Sorprese' },
-    seo: { name: 'Ottimizzazione SEO & Performance Avanzata', price: 500, selected: false, badge: 'Growth' },
+    priority: { name: 'SLA Intervento Garantito (< 4h)', price: 45, selected: true, badge: 'High Priority' },
+    guarantee: { name: 'Garanzia Risultato Milestone (Risk-Free)', price: 60, selected: false, badge: 'Market Unique' },
+    scopeShield: { name: 'Pacchetto Scope Creep (3 Modifiche Extra incluse)', price: 50, selected: false, badge: 'Zero Sorprese' },
+    seo: { name: 'Ottimizzazione SEO & Performance Avanzata', price: 50, selected: false, badge: 'Growth' },
   });
 
   const [audioPitchNote, setAudioPitchNote] = useState('Ciao! Ho strutturato questo preventivo eliminando i rischi tecnici iniziali. Possiamo partire subito.');
