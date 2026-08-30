@@ -3,10 +3,21 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface ModuleItem {
+  name: string;
+  price: number;
+}
+
+interface AddonItem {
+  name: string;
+  price: number;
+  selected: boolean;
+  badge: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   
-  // Stati del form
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [projectDescription, setProjectDescription] = useState('Architettura piattaforma web ad alte performance & Automazione flussi.');
@@ -14,8 +25,7 @@ export default function DashboardPage() {
   const [timerFomo, setTimerFomo] = useState(24);
   const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single');
   
-  // Moduli dinamici con nome e prezzo
-  const [modules, setModules] = useState<{ name: string; price: number }[]>([
+  const [modules, setModules] = useState<ModuleItem[]>([
     { name: 'Core App & Dashboard', price: 0 }, 
     { name: 'Integrazione Stripe Checkout', price: 0 }, 
     { name: 'Autenticazione & Utenti', price: 0 }
@@ -23,18 +33,15 @@ export default function DashboardPage() {
   const [newModuleName, setNewModuleName] = useState('');
   const [newModulePrice, setNewModulePrice] = useState<number | ''>('');
   
-  // Add-on & Feature di Mercato Uniche (Risk-Reversal e Scope Shield)
-  const [addons, setAddons] = useState<{ [key: string]: { name: string; price: number; selected: boolean; badge: string } }>({
+  const [addons, setAddons] = useState<Record<string, AddonItem>>({
     priority: { name: 'SLA Intervento Garantito (< 4h)', price: 400, selected: true, badge: 'High Priority' },
     guarantee: { name: 'Garanzia Risultato Milestone (Risk-Free)', price: 600, selected: false, badge: 'Market Unique' },
     scopeShield: { name: 'Pacchetto Scope Creep (3 Modifiche Extra incluse)', price: 450, selected: false, badge: 'Zero Sorprese' },
     seo: { name: 'Ottimizzazione SEO & Performance Avanzata', price: 500, selected: false, badge: 'Growth' },
   });
 
-  // Nota Vocale / Strategica del Professionista
   const [audioPitchNote, setAudioPitchNote] = useState('Ciao! Ho strutturato questo preventivo eliminando i rischi tecnici iniziali. Possiamo partire subito.');
 
-  // Stati firma Canvas
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSigned, setHasSigned] = useState(false);
@@ -43,12 +50,10 @@ export default function DashboardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Calcolo totale dinamico (Base + Addon + Moduli con prezzo)
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
   const modulesTotal = modules.reduce((acc, curr) => acc + curr.price, 0);
   const totalAmount = baseAmount + addonsTotal + modulesTotal;
 
-  // Funzione per generare contenuti con l'IA
   const handleAiGenerate = async () => {
     setAiLoading(true);
     setError('');
@@ -93,7 +98,6 @@ export default function DashboardPage() {
     }));
   };
 
-  // Funzioni per la Firma Canvas
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -109,6 +113,9 @@ export default function DashboardPage() {
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
+    if ('touches' in e) {
+      e.preventDefault();
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -186,7 +193,6 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-[#05070b] text-white p-4 md:p-10 flex flex-col items-center">
       <div className="w-full max-w-4xl space-y-8">
         
-        {/* Header di Mercato Unico */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#111827] to-blue-950/40 border border-purple-900/30 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-3">
             <span className="flex h-3 w-3 relative">
@@ -227,7 +233,6 @@ export default function DashboardPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* Box Cliente & Pitch Vocale */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
@@ -292,7 +297,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Box Budget & Slider con Preset */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -354,10 +358,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Moduli Dinamici con Prezzo & Add-on */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Moduli Dinamici Inseriti dal Professionista con Prezzo */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-1 flex items-center gap-2">
@@ -372,14 +374,14 @@ export default function DashboardPage() {
                     type="text"
                     value={newModuleName}
                     onChange={(e) => setNewModuleName(e.target.value)}
-                    placeholder="Nome modulo"
+                    placeholder="Nome module"
                     className="flex-1 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
                   />
                   <input
                     type="number"
                     value={newModulePrice}
                     onChange={(e) => setNewModulePrice(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="€ Prezzo"
+                    placeholder="€ Prezz"
                     className="w-24 bg-[#182234] border border-gray-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
                   />
                   <button
@@ -411,13 +413,12 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {modules.length === 0 && (
-                    <p className="text-xs text-gray-500 italic text-center py-4">Nessun modulo inserito. Aggiungine almeno uno.</p>
+                    <p className="text-xs text-gray-500 italic text-center py-4">Nessun modulo inserito.</p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Add-on Unici di Mercato */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
@@ -452,7 +453,6 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* Totale & Firma Canvas */}
           <div className="bg-gradient-to-br from-[#111827] to-[#0a0f1d] border border-purple-900/60 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             
             <div className="flex flex-col md:flex-row items-center justify-between border-b border-gray-800 pb-6 gap-4">
