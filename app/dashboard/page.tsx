@@ -23,27 +23,29 @@ export default function DashboardOverviewPage() {
         const res = await fetch('/api/quotes');
         if (!res.ok) throw new Error('Errore nel recupero dei preventivi');
         const data = await res.json();
-        setQuotes(data.quotes || []);
-      } catch (err: any) {
-        const localQuotes = localStorage.getItem('quotepulse_deals');
-        if (localQuotes) {
-          setQuotes(JSON.parse(localQuotes));
-        } else {
-          setQuotes([
-            {
-              id: 'sample-1',
-              clientName: 'Giulia Rossi (TechLabs)',
-              clientEmail: 'giulia@techlabs.it',
-              amount: 3450,
-              status: 'SIGNED',
-              createdAt: new Date().toISOString(),
-              timerFomo: 24
-            }
-          ]);
+        
+        // Se l'API restituisce dati reali, usiamo quelli
+        if (data.quotes && data.quotes.length > 0) {
+          setQuotes(data.quotes);
+          return;
         }
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        // Ignoriamo l'errore dell'API e controlliamo il localStorage
       }
+
+      // Fallback sul localStorage dove vengono salvati i reali preventivi generati
+      const localQuotes = localStorage.getItem('quotepulse_deals');
+      if (localQuotes) {
+        try {
+          setQuotes(JSON.parse(localQuotes));
+        } catch (e) {
+          setQuotes([]);
+        }
+      } else {
+        setQuotes([]); // Nessun dato fittizio, parte vuoto se non ci sono preventivi reali
+      }
+      
+      setLoading(false);
     };
 
     fetchQuotes();
