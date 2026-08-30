@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js'; // Assicurati di usare il client Supabase configurato nel progetto
+import { createClient } from '@supabase/supabase-js';
 
-// Inizializza il client Supabase (o usa il client che hai già nel progetto)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -13,9 +12,8 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // Recupera il preventivo reale dal database usando l'ID
   const { data: quote, error } = await supabase
-    .from('quotes') // Sostituisci 'quotes' con il nome esatto della tua tabella su Supabase se è diverso
+    .from('quotes')
     .select('*')
     .eq('id', id)
     .single();
@@ -24,16 +22,36 @@ export async function GET(
     return new NextResponse('Preventivo non trovato', { status: 404 });
   }
 
-  // Usiamo i dati reali presi dal database
+  const basePrice = Number(quote.amount || quote.base_price || 0);
+  const projectDesc = quote.project_description || quote.projectName || "Sviluppo piattaforma web";
+  
+  // Ricostruiamo la lista delle voci (Servizio Base + Opzioni)
+  const items: { description: string; price: number }[] = [
+    { description: projectDesc, price: basePrice }
+  ];
+
+  if (Array.isArray(quote.options)) {
+    quote.options.forEach((opt: any) => {
+      if (typeof opt === 'string') {
+        items.push({ description: opt, price: 150 });
+      } else if (opt) {
+        items.push({ 
+          description: opt.title || opt.name || 'Opzione aggiuntiva', 
+          price: Number(opt.price ?? opt.cost ?? 150) 
+        });
+      }
+    });
+  }
+
+  const calculatedTotal = items.reduce((sum, item) => sum + item.price, 0);
+
   const quoteData = {
     id: quote.id,
     clientName: quote.client_name || quote.clientName || "Cliente",
-    projectName: quote.project_description || quote.projectName || "Progetto SaaS",
-    totalAmount: `€ ${Number(quote.amount || quote.total_amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+    projectName: projectDesc,
     date: new Date(quote.created_at || Date.now()).toLocaleDateString('it-IT'),
-    items: quote.items || [
-      { description: quote.project_description || "Sviluppo e configurazione piattaforma", price: `€ ${Number(quote.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}` }
-    ]
+    items,
+    totalAmount: `€ ${calculatedTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
   };
 
   const htmlContent = `
@@ -71,17 +89,12 @@ export async function GET(
           </tr>
         </thead>
         <tbody>
-          ${Array.isArray(quoteData.items) ? quoteData.items.map((item: any) => `
+          ${quoteData.items.map((item) => `
             <tr>
-              <td>${item.description || item}</td>
-              <td style="text-align: right;">${item.price || quoteData.totalAmount}</td>
+              <td>${item.description}</td>
+              <td style="text-align: right;">€ ${item.price.toLocaleString('it-IT', { minimumFractionDigits: 2 })}</td>
             </tr>
-          `).join('') : `
-            <tr>
-              <td>${quoteData.projectName}</td>
-              <td style="text-align: right;">${quoteData.totalAmount}</td>
-            </tr>
-          `}
+          `).join('')}
         </tbody>
       </table>
       <div class="total">
