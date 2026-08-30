@@ -502,7 +502,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
                       </div>
                     </div>
                     <span className="text-xs sm:text-sm font-semibold text-slate-200 shrink-0 ml-2">
-                      {opt.price === 0 ? 'Incluso' : `+€{opt.price}`}
+                      {opt.price === 0 ? 'Incluso' : `+€${opt.price}`}
                     </span>
                   </div>
                 )
