@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientEmail, amount, quoteId, priceId } = body;
+    const { clientEmail, amount, quoteId, priceId, userId } = body;
     
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -26,7 +26,10 @@ export async function POST(req: Request) {
         ],
         mode: 'subscription',
         success_url: `${origin}/dashboard?success=true`,
-        cancel_url: `${origin}/`,
+        cancel_url: `${origin}/dashboard?canceled=true`,
+        metadata: {
+          userId: userId || '', // Fondamentale per identificare l'utente nel webhook
+        },
       };
     } 
     // CASO 2: Pagamento preventivo personalizzato (tramite amount e quoteId)

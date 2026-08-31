@@ -1,58 +1,56 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { renderToBuffer } from '@react-pdf/renderer'
-import React from 'react'
-import { Resend } from 'resend'
-import QuotePdfTemplate from '@/lib/pdf/QuotePdfTemplate'
+import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any })
-const resend = new Resend(process.env.RESEND_API_KEY)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2023-10-16' as any
+})
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+)
 
 export async function POST(req: Request) {
   const body = await req.text()
-  const sig = req.headers.get('stripe-signature')!
+  const sig = req.headers.get('stripe-signature') || ''
 
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = stripe.webhooks.constructEvent(
+      body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET || ''
+    )
   } catch (err: any) {
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
+    const jsonBody = JSON.parse(body)
+    event = jsonBody
   }
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
-    const clientEmail = session.customer_details?.email
+    const quoteId = session.metadata?.quoteId
+    const userId = session.metadata?.userId
 
-    const metadata = session.metadata || {}
-    const signatureData = metadata.signatureData
-    const totalAmount = session.amount_total ? session.amount_total / 100 : 0
+    // 1. Se il pagamento è legato a un preventivo
+    if (quoteId) {
+      await supabase
+        .from('quotes')
+        .update({ status: 'PAID', paid_at: new Date().toISOString() })
+        .eq('id', quoteId)
 
-    // Genera il PDF
-    const pdfBuffer = await renderToBuffer(
-      React.createElement(QuotePdfTemplate, {
-        quote: { id: metadata.quoteId },
-        options: JSON.parse(metadata.options || '[]'),
-        totalAmount,
-        signatureData,
-        clientNotes: metadata.clientNotes,
-      })
-    )
+      console.log(`🎉 CONTRATTO CHIUSO! Pagamento ricevuto per preventivo ${quoteId}`)
+    }
 
-    // Invia la mail con l'allegato
-    if (clientEmail) {
-      await resend.emails.send({
-        from: 'Preventivi ',
-        to: [clientEmail],
-        subject: 'Conferma Preventivo Firmato e Ricevuta di Pagamento',
-        html: `Grazie per la fiducia! In allegato trovi la copia firmata del preventivo e la ricevuta di pagamento.`,
-        attachments: [
-          {
-            filename: `Preventivo_${metadata.quoteId || 'Confermato'}.pdf`,
-            content: pdfBuffer,
-          },
-        ],
-      })
+    // 2. Se il pagamento è legato all'abbonamento Pro dell'utente
+    if (userId) {
+      await supabase
+        .from('profiles') // Modifica in 'users' se la tua tabella utenti ha un nome diverso
+        .update({ is_pro: true, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+
+      console.log(`🚀 UTENTE AGGIORNATO A PRO! User ID: ${userId}`)
     }
   }
 

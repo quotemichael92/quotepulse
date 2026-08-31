@@ -9,6 +9,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
   const [amount, setAmount] = useState('')
   const [quotes, setQuotes] = useState(initialQuotes)
   const [isAiLoading, setIsAiLoading] = useState(false)
+  const [isSubscribing, setIsSubscribing] = useState(false)
 
   const handleAiSuggest = async () => {
     setIsAiLoading(true)
@@ -65,8 +66,46 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
     }
   }
 
+  const handleUpgradePro = async () => {
+    setIsSubscribing(true)
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: 'IL_TUO_PRICE_ID_DI_STRIPE' // Sostituisci con il Price ID di Stripe
+        })
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || "Errore durante la creazione della sessione di abbonamento.")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Errore di connessione.")
+    } finally {
+      setIsSubscribing(false)
+    }
+  }
+
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <div className="flex justify-between items-center bg-[#131f37] border border-[#23385d] p-4 rounded-xl">
+        <div>
+          <h2 className="text-lg font-bold text-white">Piano Free</h2>
+          <p className="text-xs text-slate-400">Passa a Pro per sbloccare funzioni illimitate.</p>
+        </div>
+        <button
+          onClick={handleUpgradePro}
+          disabled={isSubscribing}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50"
+        >
+          {isSubscribing ? 'Reindirizzamento...' : 'Passa a Pro 🚀'}
+        </button>
+      </div>
+
       <h1 className="text-2xl font-bold mb-6">Crea Nuovo Preventivo</h1>
       <form onSubmit={handleCreateQuote} className="space-y-4">
         <div>
