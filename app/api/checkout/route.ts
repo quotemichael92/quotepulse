@@ -9,31 +9,40 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
+    const body = await req.json();
+    const { clientEmail, amount, quoteId, priceId, userId: bodyUserId } = body;
+
+    let userId = bodyUserId;
+
+    // Se il frontend non passa il userId, lo ricaviamo in sicurezza dai cookie
+    if (!userId) {
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {}
+            },
           },
-        },
+        }
+      );
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        userId = user.id;
       }
-    );
-
-    // Recupera l'utente autenticato direttamente dal server
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Utente non autorizzato o non loggato.' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { clientEmail, amount, quoteId, priceId } = body;
-    
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
     let sessionParams: Stripe.Checkout.SessionCreateParams;
 
     // CASO 1: Abbonamento mensile (Starter / Pro tramite priceId)
@@ -49,9 +58,9 @@ export async function POST(req: Request) {
         mode: 'subscription',
         success_url: `${origin}/dashboard?success=true`,
         cancel_url: `${origin}/dashboard?canceled=true`,
-        client_reference_id: user.id,
+        client_reference_id: userId || undefined,
         metadata: {
-          userId: user.id,
+          userId: userId || '',
         },
       };
     } 
@@ -79,7 +88,7 @@ export async function POST(req: Request) {
           },
         ],
         mode: 'payment',
-        customer_email: clientEmail || user.email || undefined,
+        customer_email: clientEmail || undefined,
         success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/p/${quoteId}`,
       };
