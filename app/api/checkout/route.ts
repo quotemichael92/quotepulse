@@ -27,6 +27,7 @@ export async function POST(req: Request) {
         mode: 'subscription',
         success_url: `${origin}/dashboard?success=true`,
         cancel_url: `${origin}/dashboard?canceled=true`,
+        client_reference_id: userId || undefined,
         metadata: {
           userId: userId || '', // Fondamentale per identificare l'utente nel webhook
         },
