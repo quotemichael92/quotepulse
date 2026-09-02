@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16' as any,
@@ -7,8 +9,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    // Recupera l'utente autenticato direttamente dal server
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Utente non autorizzato o non loggato.' }, { status: 401 });
+    }
+
     const body = await req.json();
-    const { clientEmail, amount, quoteId, priceId, userId } = body;
+    const { clientEmail, amount, quoteId, priceId } = body;
     
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -27,9 +49,9 @@ export async function POST(req: Request) {
         mode: 'subscription',
         success_url: `${origin}/dashboard?success=true`,
         cancel_url: `${origin}/dashboard?canceled=true`,
-        client_reference_id: userId || undefined,
+        client_reference_id: user.id,
         metadata: {
-          userId: userId || '', // Fondamentale per identificare l'utente nel webhook
+          userId: user.id,
         },
       };
     } 
@@ -57,7 +79,7 @@ export async function POST(req: Request) {
           },
         ],
         mode: 'payment',
-        customer_email: clientEmail || undefined,
+        customer_email: clientEmail || user.email || undefined,
         success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/p/${quoteId}`,
       };
