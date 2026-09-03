@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16' as any,
@@ -10,43 +8,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientEmail, amount, quoteId, priceId } = body;
+    const { clientEmail, amount, quoteId, priceId, userId } = body;
 
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     let sessionParams: Stripe.Checkout.SessionCreateParams;
 
-    // CASO 1: Abbonamento mensile (Richiede autenticazione tramite cookie di sessione)
+    // CASO 1: Abbonamento mensile
     if (priceId) {
-      const cookieStore = await cookies();
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return cookieStore.getAll();
-            },
-            setAll(cookiesToSet) {
-              try {
-                cookiesToSet.forEach(({ name, value, options }) =>
-                  cookieStore.set(name, value, options)
-                );
-              } catch {}
-            },
-          },
-        }
-      );
-
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-      if (authError || !user) {
+      if (!userId) {
         return NextResponse.json(
-          { error: 'Utente non autenticato. Effettua nuovamente l accesso.' },
+          { error: 'Utente non identificato dal client. Effettua nuovamente il login.' },
           { status: 401 }
         );
       }
-
-      const userId = user.id;
 
       sessionParams = {
         payment_method_types: ['card'],
@@ -65,7 +39,7 @@ export async function POST(req: Request) {
         },
       };
     } 
-    // CASO 2: Pagamento preventivo personalizzato (Clienti finali)
+    // CASO 2: Pagamento preventivo personalizzato
     else {
       if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '' || quoteId === 'default') {
         return NextResponse.json(
