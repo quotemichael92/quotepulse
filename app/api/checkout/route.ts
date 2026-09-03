@@ -10,12 +10,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientEmail, amount, quoteId, priceId, userId: bodyUserId } = body;
+    const { clientEmail, amount, quoteId, priceId } = body;
 
-    let userId = bodyUserId;
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    let sessionParams: Stripe.Checkout.SessionCreateParams;
 
-    // Se manca nel body e siamo nel caso di abbonamento, proviamo a ricavarlo dai cookie in sicurezza
-    if ((!userId || userId.trim() === '') && priceId) {
+    // CASO 1: Abbonamento mensile (Richiede autenticazione tramite cookie di sessione)
+    if (priceId) {
       const cookieStore = await cookies();
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,23 +37,16 @@ export async function POST(req: Request) {
         }
       );
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        userId = user.id;
-      }
-    }
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    let sessionParams: Stripe.Checkout.SessionCreateParams;
-
-    // CASO 1: Abbonamento mensile (Richiede autenticazione obbligatoria)
-    if (priceId) {
-      if (!userId || userId.trim() === '') {
+      if (authError || !user) {
         return NextResponse.json(
-          { error: 'Devi effettuare l accesso per sottoscrivere un abbonamento.' },
+          { error: 'Utente non autenticato. Effettua nuovamente l accesso.' },
           { status: 401 }
         );
       }
+
+      const userId = user.id;
 
       sessionParams = {
         payment_method_types: ['card'],
@@ -71,7 +65,7 @@ export async function POST(req: Request) {
         },
       };
     } 
-    // CASO 2: Pagamento preventivo personalizzato da parte del cliente finale
+    // CASO 2: Pagamento preventivo personalizzato (Clienti finali)
     else {
       if (!quoteId || quoteId === 'undefined' || quoteId === 'null' || String(quoteId).trim() === '' || quoteId === 'default') {
         return NextResponse.json(
