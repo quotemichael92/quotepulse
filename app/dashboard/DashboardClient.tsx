@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 
 export default function DashboardClient({ initialQuotes }: { initialQuotes: any[] }) {
   const [clientName, setClientName] = useState('')
@@ -69,11 +70,22 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
   const handleSubscribe = async (priceId: string, planName: string) => {
     setLoadingPlan(planName)
     try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      
+      const { data: { user } } = await supabase.auth.getUser()
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId })
+        body: JSON.stringify({ 
+          priceId,
+          userId: user?.id // Passiamo esplicitamente l'ID utente al backend
+        })
       })
+
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
