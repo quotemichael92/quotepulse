@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     let userId = bodyUserId;
 
     // Se il frontend non passa il userId, lo ricaviamo in sicurezza dai cookie
-    if (!userId) {
+    if (!userId || userId.trim() === '') {
       const cookieStore = await cookies();
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
