@@ -15,13 +15,6 @@ export async function POST(req: Request) {
 
     // CASO 1: Abbonamento mensile
     if (priceId) {
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Utente non identificato dal client. Effettua nuovamente il login.' },
-          { status: 401 }
-        );
-      }
-
       sessionParams = {
         payment_method_types: ['card'],
         line_items: [
@@ -33,9 +26,9 @@ export async function POST(req: Request) {
         mode: 'subscription',
         success_url: `${origin}/dashboard?success=true`,
         cancel_url: `${origin}/dashboard?canceled=true`,
-        client_reference_id: userId,
+        client_reference_id: userId || 'guest_sub',
         metadata: {
-          userId: userId,
+          userId: userId || 'not_provided',
         },
       };
     } 
