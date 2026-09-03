@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 
 export default function DashboardClient({ initialQuotes }: { initialQuotes: any[] }) {
   const [clientName, setClientName] = useState('')
@@ -70,25 +69,10 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
   const handleSubscribe = async (priceId: string, planName: string) => {
     setLoadingPlan(planName)
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        alert("Devi effettuare l'accesso per abbonarti.")
-        setLoadingPlan(null)
-        return
-      }
-
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          priceId,
-          userId: user.id 
-        })
+        body: JSON.stringify({ priceId })
       })
       const data = await res.json()
       if (data.url) {
@@ -118,7 +102,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           <button
             onClick={() => handleSubscribe('price_1TyBxsGc2QPdKxT7HMWzVJHs', 'base')}
             disabled={loadingPlan !== null}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition disabled:opacity-50"
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
             {loadingPlan === 'base' ? 'Reindirizzamento...' : 'Attiva Piano Base'}
           </button>
@@ -134,9 +118,9 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           <button
             onClick={() => handleSubscribe('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'pro')}
             disabled={loadingPlan !== null}
-            className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-sm font-bold rounded-lg transition disabled:opacity-50"
+            className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-sm font-bold rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
-            {loadingPlan === 'pro' ? 'Reindirizzamento...' : 'Attiva Piano Pro'}
+            {loadingPlan === 'pro' ? 'Reindirizzamento...' : 'Abbonati a Pro'}
           </button>
         </div>
       </div>
