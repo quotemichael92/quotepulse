@@ -40,26 +40,19 @@ export async function POST(req: Request) {
         .eq('id', quoteId)
     }
 
-    const subscriptionId = typeof session.subscription === 'string' 
-      ? session.subscription 
-      : session.subscription?.id
+    // Recupera la sessione espandendo la subscription per essere sicuri di avere tutti i dati
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['subscription', 'customer']
+    })
 
-    if (subscriptionId) {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    const subscription = fullSession.subscription as Stripe.Subscription | null
 
-      // 1. Validazione ID dai metadata
+    if (subscription) {
       let validUserId = rawUserId && rawUserId !== 'not_provided' && rawUserId.length > 10 ? rawUserId : null
 
-      // 2. Fallback di sicurezza basato sulla mail se l'ID nei metadata manca
       if (!validUserId) {
-        let customerEmail = session.customer_email || session.customer_details?.email
-        
-        if (!customerEmail && typeof session.customer === 'string') {
-          const customer = await stripe.customers.retrieve(session.customer)
-          if (!customer.deleted && 'email' in customer) {
-            customerEmail = customer.email
-          }
-        }
+        const customer = fullSession.customer as Stripe.Customer | null
+        const customerEmail = fullSession.customer_email || customer?.email
 
         if (customerEmail) {
           const { data: listData } = await supabase.auth.admin.listUsers()
@@ -70,12 +63,11 @@ export async function POST(req: Request) {
         }
       }
 
-      // Salva l'abbonamento collegandolo all'utente trovato (o null se proprio irrecuperabile)
       const { error } = await supabase
         .from('subscriptions')
         .upsert({
           user_id: validUserId,
-          stripe_customer_id: session.customer as string,
+          stripe_customer_id: typeof fullSession.customer === 'string' ? fullSession.customer : fullSession.customer?.id,
           stripe_subscription_id: subscription.id,
           status: subscription.status,
           price_id: subscription.items.data[0]?.price.id,
@@ -87,8 +79,10 @@ export async function POST(req: Request) {
       if (error) {
         console.error('Errore inserimento Supabase subscriptions:', error)
       } else {
-        console.log(`Abbonamento salvato correttamente! User ID associato: ${validUserId || 'Nessuno'}`)
+        console.log(`Abbonamento ${subscription.id} salvato con successo per l'utente: ${validUserId}`)
       }
+    } else {
+      console.log('Nessuna subscription trovata nella sessione di Stripe.')
     }
   }
 
