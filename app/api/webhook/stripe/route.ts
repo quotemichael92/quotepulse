@@ -31,49 +31,43 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const quoteId = session.metadata?.quoteId
-    const rawUserId = session.metadata?.userId
-    
-    // Verifica che l'userId sia un UUID valido (evita "not_provided" o stringhe casuali)
-    const userId = rawUserId && rawUserId !== 'not_provided' && rawUserId.length > 10 ? rawUserId : null
+    const userId = session.metadata?.userId
 
-    // 1. Se il pagamento è legato a un preventivo
     if (quoteId) {
       await supabase
         .from('quotes')
         .update({ status: 'PAID', paid_at: new Date().toISOString() })
         .eq('id', quoteId)
-
-      console.log(`🎉 CONTRATTO CHIUSO! Pagamento ricevuto per preventivo ${quoteId}`)
     }
 
-    // 2. Se il pagamento è legato all'abbonamento Pro dell'utente
-    if (userId) {
-      const subscriptionId = typeof session.subscription === 'string' 
-        ? session.subscription 
-        : session.subscription?.id
+    const subscriptionId = typeof session.subscription === 'string' 
+      ? session.subscription 
+      : session.subscription?.id
 
-      if (subscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    if (subscriptionId) {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
-        await supabase
-          .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            stripe_customer_id: session.customer as string,
-            stripe_subscription_id: subscription.id,
-            status: subscription.status,
-            price_id: subscription.items.data[0]?.price.id,
-            created_at: new Date(subscription.created * 1000).toISOString(),
-          }, {
-            onConflict: 'stripe_subscription_id'
-          })
+      // Fallback sicuro per l'user_id se non è un UUID valido
+      const validUserId = userId && userId !== 'not_provided' && userId.length > 10 ? userId : null
 
-        console.log(`📦 ABBONAMENTO SALVATO SU SUPABASE! Subscription ID: ${subscription.id}`)
+      const { error } = await supabase
+        .from('subscriptions')
+        .upsert({
+          user_id: validUserId,
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscription.id,
+          status: subscription.status,
+          price_id: subscription.items.data[0]?.price.id,
+          created_at: new Date(subscription.created * 1000).toISOString(),
+        }, {
+          onConflict: 'stripe_subscription_id'
+        })
+
+      if (error) {
+        console.error('Errore inserimento Supabase subscriptions:', error)
+      } else {
+        console.log('Abbonamento salvato con successo su Supabase!')
       }
-
-      console.log(`🚀 UTENTE AGGIORNATO A PRO! User ID: ${userId}`)
-    } else {
-      console.log('⚠️ Nessun userId valido trovato nei metadata della sessione Stripe.')
     }
   }
 
