@@ -59,6 +59,10 @@ export async function POST(req: Request) {
         customer_email: clientEmail || undefined,
         success_url: `${origin}/p/${quoteId}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/p/${quoteId}`,
+        metadata: {
+          quoteId: quoteId,
+          userId: userId || 'not_provided',
+        },
       };
     }
 
