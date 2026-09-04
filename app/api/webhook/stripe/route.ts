@@ -45,21 +45,20 @@ export async function POST(req: Request) {
 
     // 2. Se il pagamento è legato all'abbonamento Pro dell'utente
     if (userId) {
-      // Aggiorna il profilo utente
+      // Aggiorna il profilo utente (o salta se la tabella profiles non serve)
       await supabase
         .from('profiles')
-        .update({ is_pro: true, updated_at: new Date().toISOString() })
+        .update({ is_pro: true })
         .eq('id', userId)
 
-      // Registra o aggiorna l'abbonamento nella tabella 'subscriptions'
       const subscriptionId = typeof session.subscription === 'string' 
         ? session.subscription 
         : session.subscription?.id
 
       if (subscriptionId) {
-        // Recupera i dettagli completi dell'abbonamento da Stripe
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
+        // Inserisce solo i dati compatibili con le colonne esistenti nella tabella subscriptions
         await supabase
           .from('subscriptions')
           .upsert({
@@ -68,12 +67,7 @@ export async function POST(req: Request) {
             stripe_subscription_id: subscription.id,
             status: subscription.status,
             price_id: subscription.items.data[0]?.price.id,
-            quantity: subscription.items.data[0]?.quantity || 1,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
             created_at: new Date(subscription.created * 1000).toISOString(),
-            updated_at: new Date().toISOString()
           }, {
             onConflict: 'stripe_subscription_id'
           })
