@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const quoteId = session.metadata?.quoteId
-    const userId = session.metadata?.userId
+    const rawUserId = session.metadata?.userId
 
     if (quoteId) {
       await supabase
@@ -47,9 +47,30 @@ export async function POST(req: Request) {
     if (subscriptionId) {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
-      // Fallback sicuro per l'user_id se non è un UUID valido
-      const validUserId = userId && userId !== 'not_provided' && userId.length > 10 ? userId : null
+      // 1. Validazione ID dai metadata
+      let validUserId = rawUserId && rawUserId !== 'not_provided' && rawUserId.length > 10 ? rawUserId : null
 
+      // 2. Fallback di sicurezza basato sulla mail se l'ID nei metadata manca
+      if (!validUserId) {
+        let customerEmail = session.customer_email || session.customer_details?.email
+        
+        if (!customerEmail && typeof session.customer === 'string') {
+          const customer = await stripe.customers.retrieve(session.customer)
+          if (!customer.deleted && 'email' in customer) {
+            customerEmail = customer.email
+          }
+        }
+
+        if (customerEmail) {
+          const { data: listData } = await supabase.auth.admin.listUsers()
+          const matchedUser = listData?.users?.find(u => u.email === customerEmail)
+          if (matchedUser) {
+            validUserId = matchedUser.id
+          }
+        }
+      }
+
+      // Salva l'abbonamento collegandolo all'utente trovato (o null se proprio irrecuperabile)
       const { error } = await supabase
         .from('subscriptions')
         .upsert({
@@ -66,7 +87,7 @@ export async function POST(req: Request) {
       if (error) {
         console.error('Errore inserimento Supabase subscriptions:', error)
       } else {
-        console.log('Abbonamento salvato con successo su Supabase!')
+        console.log(`Abbonamento salvato correttamente! User ID associato: ${validUserId || 'Nessuno'}`)
       }
     }
   }
