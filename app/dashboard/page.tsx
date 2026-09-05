@@ -17,16 +17,26 @@ interface Quote {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccessBanner(true);
-      const timer = setTimeout(() => {
+      
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 5500);
+
+      const removeTimer = setTimeout(() => {
         setShowSuccessBanner(false);
       }, 6000);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(removeTimer);
+      };
     }
   }, [searchParams]);
 
@@ -69,9 +79,8 @@ function DashboardContent() {
   return (
     <div className="w-full max-w-5xl space-y-8">
       
-      {/* Banner di successo post-pagamento Stripe */}
       {showSuccessBanner && (
-        <div className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl flex items-center justify-between text-sm shadow-lg">
+        <div className={`w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl flex items-center justify-between text-sm shadow-lg transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
           <div className="flex items-center gap-2">
             <span>🎉</span>
             <span><strong>Abbonamento attivato con successo!</strong> Il tuo account è ora operativo. Benvenuto in QuotePulse.</span>
