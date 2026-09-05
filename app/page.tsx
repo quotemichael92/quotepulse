@@ -77,18 +77,30 @@ export default function Home() {
               <span className="text-gray-400 text-sm">/mese</span>
             </div>
 
-            <ul className="space-y-3.5 text-sm text-gray-300 mb-8">
-              <li className="flex items-center gap-2.5">
-                <span className="text-purple-400 font-bold">✓</span> Preventivi Interattivi essenziali
+            <ul className="space-y-4 text-sm text-gray-300 mb-8">
+              <li className="flex items-start gap-2.5">
+                <span className="text-purple-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Preventivi interattivi:</strong> Invia preventivi moderni che i clienti possono aprire e firmare al volo.
+                </div>
               </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-purple-400 font-bold">✓</span> Firma Digitale Canvas integrata
+              <li className="flex items-start gap-2.5">
+                <span className="text-purple-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Firma digitale integrata:</strong> Il cliente firma direttamente online dallo schermo (smartphone o PC).
+                </div>
               </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-purple-400 font-bold">✓</span> Tracciamento apertura Deal Room
+              <li className="flex items-start gap-2.5">
+                <span className="text-purple-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Tracciamento aperture:</strong> Vedi quando il cliente apre il preventivo e lo guarda.
+                </div>
               </li>
-              <li className="flex items-center gap-2.5 text-gray-500">
-                <span className="font-bold">✕</span> Note Audio/Video & Pitch personalizzati
+              <li className="flex items-start gap-2.5 text-gray-500">
+                <span className="font-bold mt-0.5">✕</span>
+                <div>
+                  <strong className="text-gray-400">Note video/audio personalizzate</strong> (non incluso)
+                </div>
               </li>
             </ul>
           </div>
@@ -120,18 +132,30 @@ export default function Home() {
               <span className="text-gray-400 text-sm">/mese</span>
             </div>
 
-            <ul className="space-y-3.5 text-sm text-gray-200 mb-8">
-              <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Deal Rooms illimitate e interattive
+            <ul className="space-y-4 text-sm text-gray-200 mb-8">
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Spazi preventivo illimitati:</strong> Nessun limite sul numero di preventivi o trattative aperte in contemporanea.
+                </div>
               </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Firma Canvas + Audio/Video Pitch note
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Firma digitale + Video/Audio pitch:</strong> Puoi aggiungere un tuo messaggio vocale o video di presentazione per spiegare il valore del tuo preventivo e chiudere il contratto più facilmente.
+                </div>
               </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Protezione avanzata contro richieste extra
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Protezione Scope Shield:</strong> Clausole e strumenti integrati per bloccare richieste extra non pagate e difenderti dai ripensamenti dell'ultimo minuto.
+                </div>
               </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Rimozione branding e White-Label avanzato
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-white">Zero branding (White-Label):</strong> Via il logo della piattaforma, i preventivi avranno solo la tua immagine professionale.
+                </div>
               </li>
             </ul>
           </div>
