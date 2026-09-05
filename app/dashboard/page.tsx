@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface Quote {
@@ -14,8 +15,20 @@ interface Quote {
 }
 
 export default function DashboardOverviewPage() {
+  const searchParams = useSearchParams();
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      setShowSuccessBanner(true);
+      const timer = setTimeout(() => {
+        setShowSuccessBanner(false);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchQuotes = async () => {
@@ -24,16 +37,15 @@ export default function DashboardOverviewPage() {
         if (!res.ok) throw new Error('Errore nel recupero dei preventivi');
         const data = await res.json();
         
-        // Se l'API restituisce dati reali, usiamo quelli
         if (data.quotes && data.quotes.length > 0) {
           setQuotes(data.quotes);
+          setLoading(false);
           return;
         }
       } catch (err) {
         // Ignoriamo l'errore dell'API e controlliamo il localStorage
       }
 
-      // Fallback sul localStorage dove vengono salvati i reali preventivi generati
       const localQuotes = localStorage.getItem('quotepulse_deals');
       if (localQuotes) {
         try {
@@ -42,7 +54,7 @@ export default function DashboardOverviewPage() {
           setQuotes([]);
         }
       } else {
-        setQuotes([]); // Nessun dato fittizio, parte vuoto se non ci sono preventivi reali
+        setQuotes([]);
       }
       
       setLoading(false);
@@ -58,6 +70,22 @@ export default function DashboardOverviewPage() {
     <main className="min-h-screen bg-[#05070b] text-white p-4 md:p-10 flex flex-col items-center">
       <div className="w-full max-w-5xl space-y-8">
         
+        {/* Banner di successo post-pagamento Stripe */}
+        {showSuccessBanner && (
+          <div className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl flex items-center justify-between text-sm shadow-lg">
+            <div className="flex items-center gap-2">
+              <span>🎉</span>
+              <span><strong>Abbonamento attivato con successo!</strong> Il tuo account è ora operativo. Benvenuto in QuotePulse.</span>
+            </div>
+            <button 
+              onClick={() => setShowSuccessBanner(false)}
+              className="text-emerald-400 hover:text-white font-bold px-2 py-1 cursor-pointer text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#111827] to-blue-950/40 border border-purple-900/30 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-purple-200 to-blue-400 bg-clip-text text-transparent">
