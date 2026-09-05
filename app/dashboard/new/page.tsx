@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ModuleItem {
@@ -43,9 +43,52 @@ export default function DashboardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Salvataggio Bozze (Drafts) in localStorage
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('quotepulse_draft');
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.clientName) setClientName(parsed.clientName);
+        if (parsed.clientEmail) setClientEmail(parsed.clientEmail);
+        if (parsed.projectDescription) setProjectDescription(parsed.projectDescription);
+        if (parsed.baseAmount) setBaseAmount(parsed.baseAmount);
+        if (parsed.timerFomo) setTimerFomo(parsed.timerFomo);
+        if (parsed.audioPitchNote) setAudioPitchNote(parsed.audioPitchNote);
+        if (parsed.modules) setModules(parsed.modules);
+      } catch (e) {
+        console.error('Errore caricamento bozza', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const draftData = { clientName, clientEmail, projectDescription, baseAmount, timerFomo, audioPitchNote, modules };
+    localStorage.setItem('quotepulse_draft', JSON.stringify(draftData));
+  }, [clientName, clientEmail, projectDescription, baseAmount, timerFomo, audioPitchNote, modules]);
+
   const addonsTotal = Object.values(addons).reduce((acc, curr) => curr.selected ? acc + curr.price : acc, 0);
   const modulesTotal = modules.reduce((acc, curr) => acc + curr.price, 0);
   const totalAmount = baseAmount + addonsTotal + modulesTotal;
+
+  // Preset Rapidi per Tipologia di Progetto
+  const projectPresets = {
+    webapp: {
+      title: 'Sviluppo Web App Custom & API',
+      amount: 4500,
+      desc: 'Architettura frontend/backend scalabile, autenticazione sicura e dashboard interattiva.'
+    },
+    ecommerce: {
+      title: 'E-commerce ad Alte Performance',
+      amount: 3200,
+      desc: 'Setup catalogo avanzato, integrazione gateway di pagamento e ottimizzazione conversioni.'
+    },
+    consulting: {
+      title: 'Consulenza Strategica & Audit',
+      amount: 1800,
+      desc: 'Analisi approfondita dell’infrastruttura esistente, piano d’azione e affiancamento.'
+    }
+  };
 
   const handleAiGenerate = async () => {
     setAiLoading(true);
@@ -123,6 +166,8 @@ export default function DashboardPage() {
       }
 
       if (data.success && data.quote && data.quote.id) {
+        // Pulisci la bozza locale alla creazione riuscita
+        localStorage.removeItem('quotepulse_draft');
         router.push(`/p/${data.quote.id}`);
       } else {
         throw new Error('Risposta non valida dal server');
@@ -180,18 +225,40 @@ export default function DashboardPage() {
           
           {/* Anagrafica & Pitch */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
                 <span>🎯</span> Anagrafica & Video/Audio Pitch Strategico
               </h3>
-              <button
-                type="button"
-                onClick={handleAiGenerate}
-                disabled={aiLoading}
-                className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
-              >
-                <span>✨</span> {aiLoading ? 'Generazione IA...' : 'Ottimizza con IA'}
-              </button>
+              
+              <div className="flex items-center gap-3">
+                {/* Preset Rapidi UI */}
+                <div className="flex items-center gap-1.5 bg-[#182234] border border-gray-700/80 px-2 py-1 rounded-lg">
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold mr-1">Preset:</span>
+                  {Object.entries(projectPresets).map(([key, val]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setProjectDescription(val.desc);
+                        setBaseAmount(val.amount);
+                      }}
+                      className="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 text-[11px] px-2 py-0.5 rounded transition"
+                      title={val.title}
+                    >
+                      {key === 'webapp' ? 'Web App' : key === 'ecommerce' ? 'E-commerce' : 'Consulenza'}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading}
+                  className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <span>✨</span> {aiLoading ? 'Generazione IA...' : 'Ottimizza con IA'}
+                </button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
