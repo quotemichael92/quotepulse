@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ModuleItem {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [timerFomo, setTimerFomo] = useState(24);
   const [paymentTerms, setPaymentTerms] = useState<'single' | 'split'>('single');
   
-  // Lista moduli core vuota di partenza
+  // Lista moduli core
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [newModuleName, setNewModuleName] = useState('');
   const [newModulePrice, setNewModulePrice] = useState<number | ''>('');
@@ -38,10 +38,6 @@ export default function DashboardPage() {
   });
 
   const [audioPitchNote, setAudioPitchNote] = useState('Ciao! Ho strutturato questo preventivo eliminando i rischi tecnici iniziali. Possiamo partire subito.');
-
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSigned, setHasSigned] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -95,60 +91,12 @@ export default function DashboardPage() {
     }));
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-    if ('touches' in e) {
-      e.preventDefault();
-    }
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    setHasSigned(true);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasSigned(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const signatureDataUrl = canvasRef.current && hasSigned ? canvasRef.current.toDataURL() : null;
-
       const res = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,8 +112,7 @@ export default function DashboardPage() {
             ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
             `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`,
             `Nota Vocale/Strategica: "${audioPitchNote}"`
-          ],
-          signature: signatureDataUrl
+          ]
         }),
       });
 
@@ -190,6 +137,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-[#05070b] text-white p-4 md:p-10 flex flex-col items-center">
       <div className="w-full max-w-4xl space-y-8">
         
+        {/* Top bar Disruption Engine */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#111827] to-blue-950/40 border border-purple-900/30 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
           <div className="flex items-center gap-3">
             <span className="flex h-3 w-3 relative">
@@ -230,6 +178,7 @@ export default function DashboardPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
+          {/* Anagrafica & Pitch */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
@@ -294,6 +243,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Investimento Base & Termini */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -355,8 +305,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Moduli & Add-on */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
+            {/* Moduli Core */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-1 flex items-center gap-2">
@@ -416,6 +368,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Add-on Antighosting */}
             <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4 flex items-center gap-2">
@@ -450,6 +403,7 @@ export default function DashboardPage() {
 
           </div>
 
+          {/* Totale e Call to Actions (Senza Firma del Professionista) */}
           <div className="bg-gradient-to-br from-[#111827] to-[#0a0f1d] border border-purple-900/60 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             
             <div className="flex flex-col md:flex-row items-center justify-between border-b border-gray-800 pb-6 gap-4">
@@ -460,35 +414,6 @@ export default function DashboardPage() {
               <div className="text-4xl md:text-5xl font-extrabold text-purple-400 font-mono tracking-tight">
                 €{totalAmount}
               </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Firma Digitale per Sblocco Immediato</label>
-                <button 
-                  type="button" 
-                  onClick={clearCanvas} 
-                  className="text-xs text-purple-400 hover:underline font-medium"
-                >
-                  Pulisci firma
-                </button>
-              </div>
-              <div className="border border-gray-700/80 rounded-xl overflow-hidden bg-[#182234]/60 flex justify-center shadow-inner">
-                <canvas
-                  ref={canvasRef}
-                  width={650}
-                  height={160}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
-                  className="w-full cursor-crosshair touch-none"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1.5 italic">La firma autentica istantaneamente il contratto e attiva il canale di comunicazione dedicato nella Deal Room.</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
@@ -520,9 +445,9 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-2 w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
+                className="flex-[2] bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-xl shadow-purple-600/30 transition duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50"
               >
-                {loading ? 'Generazione...' : 'Genera Link'}
+                {loading ? 'Generazione...' : 'Genera Link Deal Room'}
               </button>
             </div>
           </div>
