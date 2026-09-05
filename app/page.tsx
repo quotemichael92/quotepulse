@@ -42,7 +42,7 @@ export default function Home() {
         </div>
         <button 
           onClick={() => router.push('/dashboard')}
-          className="text-xs md:text-sm bg-[#111827] hover:bg-[#1f2937] border border-gray-800 px-4 py-2 rounded-xl transition text-gray-300 font-medium shadow-md"
+          className="text-xs md:text-sm bg-[#111827] hover:bg-[#1f2937] border border-gray-800 px-4 py-2 rounded-xl transition text-gray-300 font-medium shadow-md cursor-pointer"
         >
           Accedi alla Dashboard →
         </button>
@@ -96,7 +96,7 @@ export default function Home() {
           <button
             onClick={() => handleCheckout('price_1TyBxsGc2QPdKxT7HMWzVJHs', 'Starter')}
             disabled={loadingPlan !== null}
-            className="w-full bg-[#1f2937] hover:bg-gray-700 text-white font-semibold py-3.5 rounded-2xl transition duration-200 border border-gray-700 text-sm shadow-lg disabled:opacity-50"
+            className="w-full bg-[#1f2937] hover:bg-gray-700 text-white font-semibold py-3.5 rounded-2xl transition duration-200 border border-gray-700 text-sm shadow-lg disabled:opacity-50 cursor-pointer"
           >
             {loadingPlan === 'Starter' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Starter'}
           </button>
@@ -122,13 +122,13 @@ export default function Home() {
 
             <ul className="space-y-3.5 text-sm text-gray-200 mb-8">
               <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Deal Rooms illimitate con UUID
+                <span className="text-emerald-400 font-bold">✓</span> Deal Rooms illimitate e interattive
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="text-emerald-400 font-bold">✓</span> Firma Canvas + Audio/Video Pitch note
               </li>
               <li className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">✓</span> Add-on Risk-Reversal & Scope Shield
+                <span className="text-emerald-400 font-bold">✓</span> Protezione avanzata contro richieste extra
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="text-emerald-400 font-bold">✓</span> Rimozione branding e White-Label avanzato
@@ -139,7 +139,7 @@ export default function Home() {
           <button
             onClick={() => handleCheckout('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'Pro')}
             disabled={loadingPlan !== null}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition duration-200 text-sm disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition duration-200 text-sm disabled:opacity-50 cursor-pointer"
           >
             {loadingPlan === 'Pro' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Pro'}
           </button>
