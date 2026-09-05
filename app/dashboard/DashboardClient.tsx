@@ -103,28 +103,48 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       {/* SEZIONE ABBONAMENTI */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Piano Base 29€ */}
+        {/* Piano Starter */}
         <div className="p-6 bg-[#131f37] border border-[#23385d] rounded-xl flex flex-col justify-between space-y-4">
           <div>
-            <h2 className="text-xl font-bold text-white">Piano Base</h2>
-            <p className="text-2xl font-extrabold text-blue-400 mt-2">€29 <span className="text-sm font-normal text-slate-400">/mese</span></p>
-            <p className="text-xs text-slate-300 mt-2">Funzioni essenziali e standard per gestire i tuoi preventivi.</p>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Piano Starter</h2>
+              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-800 text-slate-300 rounded-full">Base</span>
+            </div>
+            <p className="text-xs text-slate-300 mt-2">Ideale per professionisti che vogliono digitalizzare i propri preventivi.</p>
+            <p className="text-2xl font-extrabold text-blue-400 mt-3">€29 <span className="text-sm font-normal text-slate-400">/mese</span></p>
+            
+            <ul className="mt-4 space-y-2 text-xs text-slate-300">
+              <li>✓ <strong>Preventivi interattivi:</strong> Invia preventivi moderni che i clienti aprono online.</li>
+              <li>✓ <strong>Firma digitale Canvas:</strong> Il cliente firma direttamente dallo schermo.</li>
+              <li>✓ <strong>Tracciamento aperture:</strong> Vedi quando il cliente visualizza il preventivo.</li>
+              <li className="text-slate-500">✕ Note audio/video e pitch personalizzati</li>
+            </ul>
           </div>
           <button
             onClick={() => handleSubscribe('price_1TyBxsGc2QPdKxT7HMWzVJHs', 'base')}
             disabled={loadingPlan !== null}
             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
-            {loadingPlan === 'base' ? 'Reindirizzamento...' : 'Attiva Piano Base'}
+            {loadingPlan === 'base' ? 'Reindirizzamento...' : 'Abbonati a Starter'}
           </button>
         </div>
 
-        {/* Piano Pro 59€ */}
+        {/* Piano Pro */}
         <div className="p-6 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/40 rounded-xl flex flex-col justify-between space-y-4">
           <div>
-            <h2 className="text-xl font-bold text-white">Piano Pro 🚀</h2>
-            <p className="text-2xl font-extrabold text-purple-400 mt-2">€59 <span className="text-sm font-normal text-slate-300">/mese</span></p>
-            <p className="text-xs text-slate-200 mt-2">Funzioni avanzate, Deal Room complete e intelligenza artificiale sbloccata.</p>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Piano Pro 🚀</h2>
+              <span className="text-xs font-semibold px-2.5 py-1 bg-purple-950 text-purple-300 border border-purple-800 rounded-full">Consigliato</span>
+            </div>
+            <p className="text-xs text-slate-200 mt-2">Per chi vuole un motore di vendita e trattativa imbattibile.</p>
+            <p className="text-2xl font-extrabold text-purple-400 mt-3">€59 <span className="text-sm font-normal text-slate-300">/mese</span></p>
+            
+            <ul className="mt-4 space-y-2 text-xs text-slate-200">
+              <li>✓ <strong>Trattative illimitate:</strong> Nessun limite sui preventivi o spazi aperti.</li>
+              <li>✓ <strong>Firma + Audio/Video pitch:</strong> Aggiungi messaggi vocali o video di valore.</li>
+              <li>✓ <strong>Protezione Scope Shield:</strong> Strumenti per bloccare richieste extra non pagate.</li>
+              <li>✓ <strong>Zero branding (White-Label):</strong> Via il logo della piattaforma, solo la tua immagine.</li>
+            </ul>
           </div>
           <button
             onClick={() => handleSubscribe('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'pro')}
