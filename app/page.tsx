@@ -115,9 +115,9 @@ export default function Home() {
         </div>
 
         {/* Card Advanced */}
-        <div className="bg-gradient-to-b from-[#191029] to-[#111827] backdrop-blur-xl border-2 border-purple-500/60 rounded-3xl p-8 flex flex-col justify-between shadow-2xl relative hover:border-purple-400 transition duration-300">
+        <div className="bg-gradient-to-b from-[#191029] to-[#111827] backdrop-blur-xl border-2 border-purple-500/60 rounded-3xl p-8 pt-10 flex flex-col justify-between shadow-2xl relative hover:border-purple-400 transition duration-300">
           
-          <div className="absolute -top-3.5 right-8 bg-purple-600 text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-lg">
+          <div className="absolute -top-3.5 right-8 bg-purple-600 text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-lg z-10">
             ⭐ Consigliato
           </div>
 
