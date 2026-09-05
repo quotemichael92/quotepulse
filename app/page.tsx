@@ -57,7 +57,7 @@ export default function Home() {
           QuotePulse Subscriptions
         </h1>
         <p className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto">
-          Scegli il piano ideale per chiudere più contratti, azzerare i clienti fantasma e gestire preventivi interattivi.
+          Scegli il piano ideale per gestire i tuoi preventivi e le tue trattative con i clienti.
         </p>
       </div>
 
@@ -114,19 +114,19 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Card Pro (Evidenziata) */}
+        {/* Card Advanced */}
         <div className="bg-gradient-to-b from-[#191029] to-[#111827] backdrop-blur-xl border-2 border-purple-500/60 rounded-3xl p-8 flex flex-col justify-between shadow-2xl relative hover:border-purple-400 transition duration-300">
           
           <div className="absolute -top-3.5 right-8 bg-purple-600 text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-lg">
-            ⭐ Più Scelto / Consigliato
+            ⭐ Consigliato
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-purple-200">Pro</h2>
-              <span className="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full font-mono border border-purple-500/30">Full Power</span>
+              <h2 className="text-2xl font-bold text-purple-200">Advanced</h2>
+              <span className="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full font-mono border border-purple-500/30">Completo</span>
             </div>
-            <p className="text-gray-300 text-sm mb-6">Per chi vuole un motore di vendita e trattativa imbattibile.</p>
+            <p className="text-gray-400 text-sm mb-6">Per chi gestisce più trattative e vuole strumenti avanzati.</p>
             <div className="flex items-baseline gap-1 mb-8">
               <span className="text-4xl md:text-5xl font-extrabold font-mono text-purple-400">€59</span>
               <span className="text-gray-400 text-sm">/mese</span>
@@ -136,36 +136,36 @@ export default function Home() {
               <li className="flex items-start gap-2.5">
                 <span className="text-emerald-400 font-bold mt-0.5">✓</span>
                 <div>
-                  <strong className="text-white">Spazi preventivo illimitati:</strong> Nessun limite sul numero di preventivi o trattative aperte in contemporanea.
+                  <strong className="text-white">Trattative illimitate:</strong> Gestisci tutti i preventivi che desideri in contemporanea senza restrizioni.
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-emerald-400 font-bold mt-0.5">✓</span>
                 <div>
-                  <strong className="text-white">Firma digitale + Video/Audio pitch:</strong> Puoi aggiungere un tuo messaggio vocale o video di presentazione per spiegare il valore del tuo preventivo e chiudere il contratto più facilmente.
+                  <strong className="text-white">Firma digitale e messaggi multimediali:</strong> Includi note vocali o video di presentazione per illustrare i dettagli del preventivo.
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-emerald-400 font-bold mt-0.5">✓</span>
                 <div>
-                  <strong className="text-white">Protezione Scope Shield:</strong> Clausole e strumenti integrati per bloccare richieste extra non pagate e difenderti dai ripensamenti dell'ultimo minuto.
+                  <strong className="text-white">Protezione richieste extra:</strong> Strumenti e clausole integrate per prevenire modifiche non concordate al progetto.
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-emerald-400 font-bold mt-0.5">✓</span>
                 <div>
-                  <strong className="text-white">Zero branding (White-Label):</strong> Via il logo della piattaforma, i preventivi avranno solo la tua immagine professionale.
+                  <strong className="text-white">Personalizzazione totale (White-Label):</strong> Rimuovi il branding della piattaforma per valorizzare esclusivamente la tua identità professionale.
                 </div>
               </li>
             </ul>
           </div>
 
           <button
-            onClick={() => handleCheckout('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'Pro')}
+            onClick={() => handleCheckout('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'Advanced')}
             disabled={loadingPlan !== null}
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition duration-200 text-sm disabled:opacity-50 cursor-pointer"
           >
-            {loadingPlan === 'Pro' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Pro'}
+            {loadingPlan === 'Advanced' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Advanced'}
           </button>
         </div>
 
