@@ -62,7 +62,32 @@ export async function POST(req: Request) {
     })
 
     if (error) {
-      console.error('Errore funzione SQL Supabase:', error)
+      console.error('Errore funzione SQL Supabase (Checkout):', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+  }
+
+  if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription
+    const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id
+
+    const { data: existingSub } = await supabase
+      .from('subscriptions')
+      .select('user_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .single()
+
+    const { error } = await supabase.rpc('handle_stripe_subscription', {
+      p_user_id: existingSub?.user_id || null,
+      p_stripe_customer_id: customerId || null,
+      p_stripe_subscription_id: subscription.id,
+      p_status: subscription.status,
+      p_price_id: subscription.items.data[0]?.price.id || null,
+      p_created_at: new Date(subscription.created * 1000).toISOString(),
+    })
+
+    if (error) {
+      console.error('Errore funzione SQL Supabase (Update/Delete):', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
   }
