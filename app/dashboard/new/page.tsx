@@ -71,22 +71,35 @@ export default function DashboardPage() {
   const modulesTotal = modules.reduce((acc, curr) => acc + curr.price, 0);
   const totalAmount = baseAmount + addonsTotal + modulesTotal;
 
-  // Preset Rapidi per Tipologia di Progetto
-  const projectPresets = {
-    webapp: {
-      title: 'Sviluppo Web App Custom & API',
-      amount: 4500,
-      desc: 'Architettura frontend/backend scalabile, autenticazione sicura e dashboard interattiva.'
-    },
-    ecommerce: {
-      title: 'E-commerce ad Alte Performance',
-      amount: 3200,
-      desc: 'Setup catalogo avanzato, integrazione gateway di pagamento e ottimizzazione conversioni.'
-    },
-    consulting: {
-      title: 'Consulenza Strategica & Audit',
-      amount: 1800,
-      desc: 'Analisi approfondita dell’infrastruttura esistente, piano d’azione e affiancamento.'
+  // Preset Intelligenti: configurano solo moduli e add-on, lasciando il budget intatto
+  const applyPreset = (type: 'webapp' | 'ecommerce' | 'consulting') => {
+    if (type === 'webapp') {
+      setModules([
+        { name: 'Setup Architettura Frontend/Backend', price: 800 },
+        { name: 'Integrazione API & Autenticazione', price: 600 }
+      ]);
+      setAddons(prev => ({
+        ...prev,
+        priority: { ...prev.priority, selected: true },
+        scopeShield: { ...prev.scopeShield, selected: true }
+      }));
+    } else if (type === 'ecommerce') {
+      setModules([
+        { name: 'Configurazione Catalogo & Prodotti', price: 500 },
+        { name: 'Integrazione Gateway Pagamenti', price: 400 }
+      ]);
+      setAddons(prev => ({
+        ...prev,
+        seo: { ...prev.seo, selected: true }
+      }));
+    } else if (type === 'consulting') {
+      setModules([
+        { name: 'Audit Tecnico & Analisi Infrastruttura', price: 400 }
+      ]);
+      setAddons(prev => ({
+        ...prev,
+        guarantee: { ...prev.guarantee, selected: true }
+      }));
     }
   };
 
@@ -166,7 +179,6 @@ export default function DashboardPage() {
       }
 
       if (data.success && data.quote && data.quote.id) {
-        // Pulisci la bozza locale alla creazione riuscita
         localStorage.removeItem('quotepulse_draft');
         router.push(`/p/${data.quote.id}`);
       } else {
@@ -223,7 +235,7 @@ export default function DashboardPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* Anagrafica & Pitch */}
+          {/* Anagrafica, Pitch & Preset Modulari */}
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
@@ -231,23 +243,30 @@ export default function DashboardPage() {
               </h3>
               
               <div className="flex items-center gap-3">
-                {/* Preset Rapidi UI */}
+                {/* Preset Intelligenti (Moduli & Addon) */}
                 <div className="flex items-center gap-1.5 bg-[#182234] border border-gray-700/80 px-2 py-1 rounded-lg">
-                  <span className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold mr-1">Preset:</span>
-                  {Object.entries(projectPresets).map(([key, val]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setProjectDescription(val.desc);
-                        setBaseAmount(val.amount);
-                      }}
-                      className="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 text-[11px] px-2 py-0.5 rounded transition"
-                      title={val.title}
-                    >
-                      {key === 'webapp' ? 'Web App' : key === 'ecommerce' ? 'E-commerce' : 'Consulenza'}
-                    </button>
-                  ))}
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold mr-1">Carica Preset:</span>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('webapp')}
+                    className="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 text-[11px] px-2 py-0.5 rounded transition"
+                  >
+                    Web App
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('ecommerce')}
+                    className="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 text-[11px] px-2 py-0.5 rounded transition"
+                  >
+                    E-commerce
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('consulting')}
+                    className="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 text-[11px] px-2 py-0.5 rounded transition"
+                  >
+                    Consulenza
+                  </button>
                 </div>
 
                 <button
@@ -317,17 +336,17 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
                   <span>💶</span> Investimento Base Progetto
                 </h3>
-                <p className="text-xs text-gray-400">Seleziona un preset rapido o regola finemente il budget</p>
+                <p className="text-xs text-gray-400">Gestisci liberamente il budget con lo slider o i bottoni rapidi</p>
               </div>
               <div className="flex gap-2">
-                {[1800, 3200, 5000, 7500].map(preset => (
+                {[1500, 3000, 5000, 8000].map(presetVal => (
                   <button
-                    key={preset}
+                    key={presetVal}
                     type="button"
-                    onClick={() => setBaseAmount(preset)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${baseAmount === preset ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'bg-[#1f2937] text-gray-400 hover:bg-gray-700'}`}
+                    onClick={() => setBaseAmount(presetVal)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${baseAmount === presetVal ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'bg-[#1f2937] text-gray-400 hover:bg-gray-700'}`}
                   >
-                    €{preset}
+                    €{presetVal}
                   </button>
                 ))}
               </div>
@@ -341,7 +360,7 @@ export default function DashboardPage() {
               <input
                 type="range"
                 min="0"
-                max="10000"
+                max="15000"
                 step="100"
                 value={baseAmount}
                 onChange={(e) => setBaseAmount(Number(e.target.value))}
@@ -382,7 +401,7 @@ export default function DashboardPage() {
                   <span>🧩</span> Moduli Core Inclusi (Con Prezzo)
                 </h3>
                 <p className="text-xs text-gray-400 mb-4">
-                  Aggiungi i moduli personalizzati necessari per questo specifico progetto.
+                  Aggiungi o rimuovi i moduli caricati dai preset o creati da zero.
                 </p>
                 
                 <div className="flex gap-2 mb-4">
@@ -429,7 +448,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   {modules.length === 0 && (
-                    <p className="text-xs text-gray-500 italic text-center py-4">Nessun modulo inserito.</p>
+                    <p className="text-xs text-gray-500 italic text-center py-4">Nessun modulo inserito (puoi usarli o ignorarli).</p>
                   )}
                 </div>
               </div>
@@ -470,7 +489,7 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* Totale e Call to Actions (Senza Firma del Professionista) */}
+          {/* Totale e Call to Actions */}
           <div className="bg-gradient-to-br from-[#111827] to-[#0a0f1d] border border-purple-900/60 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             
             <div className="flex flex-col md:flex-row items-center justify-between border-b border-gray-800 pb-6 gap-4">
