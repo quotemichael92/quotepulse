@@ -125,7 +125,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
-  // Estrazione e normalizzazione delle opzioni dal DB (prezzo 0 per acconto e nota vocale)
+  // Estrazione e normalizzazione delle opzioni dal DB
   const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
@@ -142,11 +142,21 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
         }
         const titleStr = (opt.title || opt.name || 'Opzione').toLowerCase()
         const isZeroPrice = titleStr.includes('acconto') || titleStr.includes('nota') || titleStr.includes('vocale')
+        
+        // Estrae il prezzo reale cercando in tutte le possibili proprietà
+        const extractedPrice = Number(
+          opt.price ?? 
+          opt.cost ?? 
+          opt.amount ?? 
+          opt.value ?? 
+          (isZeroPrice ? 0 : 150)
+        )
+
         return {
           id: opt.id || `opt-${index}`,
           title: opt.title || opt.name || 'Opzione',
           description: opt.description || '',
-          price: isZeroPrice ? 0 : Number(opt.price ?? opt.cost ?? 150),
+          price: isZeroPrice ? 0 : extractedPrice,
           days: Number(opt.days ?? opt.deliveryDays ?? 1)
         }
       })
