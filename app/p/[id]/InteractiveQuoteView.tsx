@@ -102,26 +102,13 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     return () => clearInterval(timer)
   }, [])
 
-  const handleHoursChange = (newHours: number) => {
-    const validated = Math.max(1, Math.min(168, newHours))
-    setFomoHours(validated)
-    setTimeLeft(prev => ({ ...prev, hours: validated, minutes: 0, seconds: 0 }))
-  }
-
   const clientName = quoteData?.client_name || quoteData?.clientName || 'Cliente'
   const clientEmail = quoteData?.client_email || quoteData?.clientEmail || ''
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
   const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? quoteData?.basePrice ?? 1000)
-  const initialBaseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? 10)
-  const [baseDays, setBaseDays] = useState<number>(initialBaseDays)
-
-  // Sincronizza i giorni base se cambiano i dati iniziali/DB
-  useEffect(() => {
-    const dbDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? initialData?.base_days ?? initialData?.baseDays ?? 10)
-    setBaseDays(dbDays)
-  }, [quoteData, initialData])
+  const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? initialData?.base_days ?? initialData?.baseDays ?? 10)
 
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
@@ -143,7 +130,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
         const titleStr = (opt.title || opt.name || 'Opzione').toLowerCase()
         const isZeroPrice = titleStr.includes('acconto') || titleStr.includes('nota') || titleStr.includes('vocale')
         
-        // Estrae il prezzo reale cercando in tutte le possibili proprietà
         const extractedPrice = Number(
           opt.price ?? 
           opt.cost ?? 
@@ -392,7 +378,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
         
-        {/* FOMO TIMER */}
+        {/* FOMO TIMER (Sola Lettura) */}
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center space-x-2 text-amber-400 font-medium text-xs sm:text-sm">
             <span>🔥</span>
@@ -400,16 +386,9 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
           
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-1.5 bg-[#0d1424]/60 border border-amber-500/30 px-2 py-1 rounded-lg">
-              <span className="text-[10px] text-amber-300 uppercase tracking-wider font-semibold">Durata (h):</span>
-              <input
-                type="number"
-                min="1"
-                max="168"
-                value={fomoHours}
-                onChange={(e) => handleHoursChange(Number(e.target.value))}
-                className="w-12 bg-transparent text-white font-mono text-xs text-center focus:outline-none border-b border-amber-400/50"
-              />
+            <div className="flex items-center space-x-1.5 bg-[#0d1424]/60 border border-amber-500/30 px-3 py-1 rounded-lg">
+              <span className="text-[10px] text-amber-300 uppercase tracking-wider font-semibold">Scadenza:</span>
+              <span className="text-white font-mono text-xs font-bold">{fomoHours}h</span>
             </div>
 
             <div className="bg-white text-slate-950 px-3 py-1 rounded-lg font-mono text-xs font-black shadow-md shrink-0">
@@ -434,7 +413,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* BUDGET & CONSEGNA */}
+        {/* BUDGET & CONSEGNA (Consegna dinamica in sola lettura) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -457,14 +436,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           <div className="bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 flex flex-col justify-center items-center text-center">
             <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Consegna Stimata</span>
             <div className="flex items-center space-x-1.5 mt-1">
-              <input
-                type="number"
-                min="1"
-                max="365"
-                value={baseDays}
-                onChange={(e) => setBaseDays(Math.max(1, Number(e.target.value)))}
-                className="w-14 bg-[#0d1424] border border-blue-500/50 rounded-lg text-blue-400 font-extrabold text-lg text-center focus:outline-none focus:border-blue-400 py-0.5"
-              />
+              <span className="text-blue-400 font-extrabold text-lg">{totalDays}</span>
               <span className="text-xs font-semibold text-slate-300">Giorni</span>
             </div>
           </div>
