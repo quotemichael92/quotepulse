@@ -167,7 +167,7 @@ export default function DashboardPage() {
             ...modules.map(m => `${m.name} (€${m.price})`), 
             ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
             `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`,
-            `Nota Vocale/Strategica: "${audioPitchNote}"`
+            `Nota Strategica: "${audioPitchNote}"`
           ]
         }),
       });
@@ -239,7 +239,7 @@ export default function DashboardPage() {
           <div className="bg-[#111827]/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <h3 className="text-lg font-semibold text-purple-400 flex items-center gap-2">
-                <span>🎯</span> Anagrafica & Video/Audio Pitch Strategico
+                <span>🎯</span> Anagrafica & Nota Strategica per il Cliente
               </h3>
               
               <div className="flex items-center gap-3">
@@ -317,7 +317,7 @@ export default function DashboardPage() {
 
             <div className="bg-purple-950/20 border border-purple-800/40 p-4 rounded-xl space-y-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                <span>🎙️</span> Nota Audio / Messaggio Strategico per il Cliente (Rompi-ghiaccio)
+                <span>🎙️</span> Nota Strategica del Professionista (Rompi-ghiaccio)
               </label>
               <input
                 type="text"
@@ -325,7 +325,7 @@ export default function DashboardPage() {
                 onChange={(e) => setAudioPitchNote(e.target.value)}
                 className="w-full bg-[#131b2e] border border-purple-900/50 rounded-lg px-3 py-2 text-xs text-purple-200 focus:outline-none focus:border-purple-500"
               />
-              <p className="text-[11px] text-gray-400">Il cliente vedrà questo messaggio in evidenza all'apertura della Deal Room per azzerare le resistenze.</p>
+              <p className="text-[11px] text-gray-400">Il cliente vedrà questo messaggio direttamente in evidenza all'apertura della Deal Room.</p>
             </div>
           </div>
 
@@ -517,7 +517,7 @@ export default function DashboardPage() {
                       ...modules.map(m => `${m.name} (€${m.price})`), 
                       ...Object.values(addons).filter(a => a.selected).map(a => `${a.name} (+€${a.price})`),
                       `Termini di Pagamento: ${paymentTerms === 'split' ? 'Acconto 50% + 50%' : 'Saldo Unico'}`,
-                      `Nota Vocale/Strategica: "${audioPitchNote}"`
+                      `Nota Strategica: "${audioPitchNote}"`
                     ]
                   };
                   localStorage.setItem('quote_preview', JSON.stringify(previewData));
