@@ -107,7 +107,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  // CORRETTO: Rimosso il valore di default fisso (1800/1000) e puntato a 0 se manca il dato
+  // CORRETTO: Preleva rigorosamente dal database senza fallback fissi errati
   const basePrice = Number(
     quoteData?.amount ?? 
     quoteData?.base_price ?? 
@@ -371,10 +371,15 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   }
 
   if (isAccepted) {
+    // CORRETTO: Apertura sicura in nuova scheda compatibile con dispositivi mobili
     setTimeout(() => {
-      window.open(`/api/quotes/${quoteId}/pdf`, '_blank')
-      window.location.href = '/'
-    }, 3000)
+      const pdfWindow = window.open(`/api/quotes/${quoteId}/pdf`, '_blank')
+      if (!pdfWindow) {
+        window.location.href = `/api/quotes/${quoteId}/pdf`
+      } else {
+        window.location.href = '/'
+      }
+    }, 2500)
 
     return (
       <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4">
@@ -387,7 +392,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             Grazie {clientName}. Firma e preferenze registrate con successo.
           </p>
           <p className="text-xs text-blue-400 animate-pulse pt-2">
-            Generazione PDF e reindirizzamento in corso...
+            Generazione PDF e apertura in corso...
           </p>
         </div>
       </div>
