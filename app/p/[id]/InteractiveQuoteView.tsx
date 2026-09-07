@@ -112,31 +112,35 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
-  // Estrazione e normalizzazione delle opzioni dal DB
+  // Estrazione e normalizzazione delle opzioni dal DB corretto
   const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
         if (typeof opt === 'string') {
           const lowerOpt = opt.toLowerCase()
           const isZeroPrice = lowerOpt.includes('acconto') || lowerOpt.includes('nota') || lowerOpt.includes('vocale')
+          
+          const matchPrice = opt.match(/€\s*(\d+)/)
+          const parsedPrice = matchPrice ? Number(matchPrice[1]) : (isZeroPrice ? 0 : 0)
+
           return {
             id: `opt-${index}`,
             title: opt,
             description: 'Modulo opzionale incluso nella proposta',
-            price: isZeroPrice ? 0 : 150,
+            price: parsedPrice,
             days: 1
           }
         }
         const titleStr = (opt.title || opt.name || 'Opzione').toLowerCase()
         const isZeroPrice = titleStr.includes('acconto') || titleStr.includes('nota') || titleStr.includes('vocale')
         
-        const extractedPrice = Number(
-          opt.price ?? 
-          opt.cost ?? 
-          opt.amount ?? 
-          opt.value ?? 
-          (isZeroPrice ? 0 : 150)
-        )
+        const rawPrice = opt.price ?? opt.cost ?? opt.amount ?? opt.value
+        let extractedPrice = Number(rawPrice)
+
+        if (isNaN(extractedPrice) || rawPrice === undefined || rawPrice === null) {
+          const matchPrice = (opt.title || '').match(/€\s*(\d+)/)
+          extractedPrice = matchPrice ? Number(matchPrice[1]) : (isZeroPrice ? 0 : 0)
+        }
 
         return {
           id: opt.id || `opt-${index}`,
@@ -413,7 +417,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         </div>
 
-        {/* BUDGET & CONSEGNA (Consegna dinamica in sola lettura) */}
+        {/* BUDGET & CONSEGNA */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 bg-[#182744]/40 border border-[#273d67] rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center text-xs sm:text-sm">
