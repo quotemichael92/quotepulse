@@ -107,20 +107,28 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  // CORRETTO: Preleva rigorosamente dal database senza fallback fissi errati
-  const basePrice = Number(
+  // Estrazione rigorosa e sicura del prezzo base dal record del database
+  const rawBasePrice = 
     quoteData?.amount ?? 
     quoteData?.base_price ?? 
     quoteData?.basePrice ?? 
     quoteData?.price ?? 
     quoteData?.total ?? 
     quoteData?.total_amount ??
+    quoteData?.budget ??
     initialData?.amount ?? 
     initialData?.base_price ?? 
     initialData?.price ?? 
     initialData?.total ?? 
     0
-  )
+
+  // Se il prezzo è ancora 0 o non valido, proviamo a cercarlo direttamente dentro il titolo o la descrizione se c'è un €
+  let basePrice = Number(rawBasePrice)
+  if (isNaN(basePrice) || basePrice === 0) {
+    const textToCheck = (quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || '') + ' ' + (quoteData?.title || '')
+    const matchPrice = textToCheck.match(/€\s*(\d+)/)
+    basePrice = matchPrice ? Number(matchPrice[1]) : 0
+  }
 
   const baseDays = Number(
     quoteData?.base_days ?? 
@@ -371,7 +379,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   }
 
   if (isAccepted) {
-    // CORRETTO: Apertura sicura in nuova scheda compatibile con dispositivi mobili
     setTimeout(() => {
       const pdfWindow = window.open(`/api/quotes/${quoteId}/pdf`, '_blank')
       if (!pdfWindow) {
