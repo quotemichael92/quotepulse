@@ -107,21 +107,21 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  // MODIFICA APPLICATA QUI: Lettura robusta del prezzo base
+  // CORRETTO: Rimosso il valore di default fisso (1800/1000) e puntato a 0 se manca il dato
   const basePrice = Number(
     quoteData?.amount ?? 
     quoteData?.base_price ?? 
     quoteData?.basePrice ?? 
     quoteData?.price ?? 
     quoteData?.total ?? 
+    quoteData?.total_amount ??
     initialData?.amount ?? 
     initialData?.base_price ?? 
     initialData?.price ?? 
     initialData?.total ?? 
-    1000
+    0
   )
 
-  // MODIFICA APPLICATA QUI: Lettura robusta dei giorni base
   const baseDays = Number(
     quoteData?.base_days ?? 
     quoteData?.baseDays ?? 
@@ -133,7 +133,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
 
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
-  // Estrazione e normalizzazione delle opzioni dal DB corretto
   const rawOptions = quoteData?.options || initialData?.options || []
   const options: Option[] = Array.isArray(rawOptions) 
     ? rawOptions.map((opt: any, index: number) => {
@@ -179,16 +178,14 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAccepted, setIsAccepted] = useState(false)
 
-  // Stati per la gestione della nota audio opzionale
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
 
-  // Inizializza tutte le opzioni come selezionate di default
   useEffect(() => {
-    if (basePrice > 0) {
+    if (basePrice >= 0) {
       setBudgetLimit(basePrice + 500)
     }
     if (options.length > 0 && selectedOptions.length === 0) {
@@ -202,7 +199,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     )
   }
 
-  // Calcolo totale prezzo e giorni sommando le opzioni attive
   const totalAmount = basePrice + options
     .filter((opt) => selectedOptions.includes(opt.id))
     .reduce((sum, opt) => sum + opt.price, 0)
@@ -226,7 +222,6 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     })
   }
 
-  // Gestione Registrazione Audio
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -403,7 +398,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     <div className="min-h-screen bg-[#0d1424] text-white flex flex-col items-center justify-center p-4 sm:p-6 my-8">
       <div className="w-full max-w-3xl bg-[#131f37]/90 border border-[#23385d] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative space-y-6">
         
-        {/* FOMO TIMER (Sola Lettura) */}
+        {/* FOMO TIMER */}
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center space-x-2 text-amber-400 font-medium text-xs sm:text-sm">
             <span>🔥</span>
@@ -518,7 +513,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
           </div>
         )}
 
-        {/* NOTA AUDIO OPZIONALE E NOTE TESTUALI */}
+        {/* NOTA AUDIO E NOTE TESTUALI */}
         <div className="space-y-3">
           <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">NOTE O MESSAGGIO AUDIO PER IL PROGETTO</span>
           
