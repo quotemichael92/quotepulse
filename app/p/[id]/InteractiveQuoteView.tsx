@@ -107,8 +107,29 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  const basePrice = Number(quoteData?.amount ?? quoteData?.base_price ?? quoteData?.basePrice ?? 1000)
-  const baseDays = Number(quoteData?.base_days ?? quoteData?.baseDays ?? initialData?.base_days ?? initialData?.baseDays ?? 10)
+  // MODIFICA APPLICATA QUI: Lettura robusta del prezzo base
+  const basePrice = Number(
+    quoteData?.amount ?? 
+    quoteData?.base_price ?? 
+    quoteData?.basePrice ?? 
+    quoteData?.price ?? 
+    quoteData?.total ?? 
+    initialData?.amount ?? 
+    initialData?.base_price ?? 
+    initialData?.price ?? 
+    initialData?.total ?? 
+    1000
+  )
+
+  // MODIFICA APPLICATA QUI: Lettura robusta dei giorni base
+  const baseDays = Number(
+    quoteData?.base_days ?? 
+    quoteData?.baseDays ?? 
+    quoteData?.days ?? 
+    initialData?.base_days ?? 
+    initialData?.baseDays ?? 
+    10
+  )
 
   const paymentTerms = quoteData?.payment_terms || quoteData?.paymentTerms || 'Concordato offline / Fattura differita'
 
