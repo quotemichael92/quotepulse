@@ -18,6 +18,7 @@ export async function POST(
     
     const amount = formData.get('amount') as string;
     const clientNotes = formData.get('clientNotes') as string;
+    const clientEmailForm = formData.get('clientEmail') as string;
 
     // Recupera i dati del preventivo dal database per avere le info del cliente
     const { data: quote, error: fetchError } = await supabase
@@ -36,21 +37,26 @@ export async function POST(
       .update({ status: 'accepted', client_notes: clientNotes })
       .eq('id', id);
 
-    // Invio della notifica email tramite Resend
-    await resend.emails.send({
-      from: 'QuotePulse <onboarding@resend.dev>', // Sostituisci con il tuo dominio verificato in seguito
-      to: quote.client_email || 'michaelsperanza40@gmail.com', // Destinatario (Cliente o tua email di test)
-      subject: `Preventivo Accettato - #${id.slice(0, 8)}`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; color: #111;">
-          <h2>Preventivo Accettato con Successo! 🎉</h2>
-          <p>Il cliente <strong>${quote.client_name || 'Cliente'}</strong> ha firmato e accettato la proposta commerciale.</p>
-          <p><strong>Importo totale:</strong> € ${amount}</p>
-          ${clientNotes ? `<p><strong>Note del cliente:</strong> ${clientNotes}</p>` : ''}
-          <p style="margin-top: 30px; font-size: 12px; color: #666;">Generato automaticamente tramite QuotePulse Deal Room.</p>
-        </div>
-      `,
-    });
+    // Determina l'email del destinatario (dal DB o dal form)
+    const recipientEmail = quote.client_email || quote.clientEmail || clientEmailForm;
+
+    if (recipientEmail) {
+      // Invio della notifica email al cliente tramite Resend
+      await resend.emails.send({
+        from: 'QuotePulse <onboarding@resend.dev>',
+        to: [recipientEmail],
+        subject: `Preventivo Accettato - #${id.slice(0, 8)}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #111;">
+            <h2>Preventivo Accettato con Successo! 🎉</h2>
+            <p>Gentile <strong>${quote.client_name || 'Cliente'}</strong>, abbiamo registrato correttamente l'accettazione della proposta commerciale.</p>
+            <p><strong>Importo totale:</strong> € ${amount}</p>
+            ${clientNotes ? `<p><strong>Tue note:</strong> ${clientNotes}</p>` : ''}
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">Generato automaticamente tramite QuotePulse Deal Room.</p>
+          </div>
+        `,
+      });
+    }
 
     return NextResponse.json({ success: true, quoteId: id });
   } catch (error) {
