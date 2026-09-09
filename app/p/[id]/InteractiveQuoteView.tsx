@@ -182,7 +182,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     : []
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
-  const [budgetLimit, setBudgetLimit] = useState(basePrice + 500)
+  const [budgetLimit, setBudgetLimit] = useState(basePrice > 0 ? basePrice : 1000)
   const [clientNotes, setClientNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAccepted, setIsAccepted] = useState(false)
@@ -194,8 +194,8 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const audioChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
-    if (basePrice >= 0) {
-      setBudgetLimit(basePrice + 500)
+    if (basePrice > 0) {
+      setBudgetLimit(basePrice)
     }
     if (options.length > 0 && selectedOptions.length === 0) {
       setSelectedOptions(options.map(o => o.id))
@@ -457,9 +457,9 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
             </div>
             <input
               type="range"
-              min="500"
-              max="5000"
-              step="50"
+              min={Math.max(100, Math.floor(basePrice * 0.5))}
+              max={Math.max(basePrice * 3, 5000)}
+              step={50}
               value={budgetLimit}
               onChange={(e) => setBudgetLimit(Number(e.target.value))}
               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
