@@ -3,6 +3,12 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 interface Quote {
   id: string;
@@ -11,7 +17,6 @@ interface Quote {
   amount: number;
   status: 'PENDING' | 'VIEWED' | 'SIGNED';
   createdAt: string;
-  timerFomo: number;
 }
 
 function DashboardContent() {
@@ -43,17 +48,29 @@ function DashboardContent() {
   useEffect(() => {
     const fetchQuotes = async () => {
       try {
-        const res = await fetch('/api/quotes');
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id;
+
+        const url = userId ? `/api/quotes?user_id=${userId}` : '/api/quotes';
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Errore nel recupero dei preventivi');
         const data = await res.json();
         
-        if (data.quotes && data.quotes.length > 0) {
-          setQuotes(data.quotes);
+        if (data.quotes) {
+          const formattedQuotes = data.quotes.map((q: any) => ({
+            id: q.id,
+            clientName: q.client_name || 'Cliente',
+            clientEmail: q.client_email || '',
+            amount: q.total_amount ?? q.amount ?? 0,
+            status: q.status || 'PENDING',
+            createdAt: q.created_at || new Date().toISOString(),
+          }));
+          setQuotes(formattedQuotes);
           setLoading(false);
           return;
         }
       } catch (err) {
-        // Ignoriamo l'errore dell'API e controlliamo il localStorage
+        console.error('Errore nel recupero API:', err);
       }
 
       const localQuotes = localStorage.getItem('quotepulse_deals');
@@ -136,7 +153,7 @@ function DashboardContent() {
           <div className="text-center py-12 text-gray-400 text-sm">Caricamento preventivi in corso...</div>
         ) : quotes.length === 0 ? (
           <div className="text-center py-12 space-y-3">
-            <p className="text-gray-400 text-sm">Nessun preventivo generato finora.</p>
+            <p className="text-gray-400 text-sm">Nessun preventivo generato finora per questo account.</p>
             <Link
               href="/dashboard/new"
               className="inline-block text-xs font-semibold text-purple-400 hover:underline"
@@ -179,7 +196,9 @@ function DashboardContent() {
                       )}
                     </td>
                     <td className="py-4 px-4 text-gray-400 text-xs">
-                      {new Date(quote.createdAt).toLocaleDateString('it-IT')}
+                      {quote.createdAt && !isNaN(new Date(quote.createdAt).getTime()) 
+                        ? new Date(quote.createdAt).toLocaleDateString('it-IT') 
+                        : '-'}
                     </td>
                     <td className="py-4 px-4 text-right">
                       <Link
