@@ -107,7 +107,7 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
   const title = `Proposta commerciale per ${clientName}`
   const descriptionText = quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || 'Sviluppo piattaforma web e configurazione servizi digitali.'
   
-  // Estrazione rigorosa e sicura del prezzo base dal record del database
+  // Estrazione rigorosa e sicura del prezzo base dal record del database (ignorando il fallback a 1800)
   const rawBasePrice = 
     quoteData?.amount ?? 
     quoteData?.base_price ?? 
@@ -122,12 +122,13 @@ export default function InteractiveQuoteView({ quoteId: propQuoteId, initialData
     initialData?.total ?? 
     0
 
+  let basePrice = Number(rawBasePrice) === 1800 ? 0 : (Number(rawBasePrice) || 0)
+
   // Se il prezzo è ancora 0 o non valido, proviamo a cercarlo direttamente dentro il titolo o la descrizione se c'è un €
-  let basePrice = Number(rawBasePrice)
-  if (isNaN(basePrice) || basePrice === 0) {
+  if (basePrice === 0) {
     const textToCheck = (quoteData?.project_description || quoteData?.projectDescription || quoteData?.description || '') + ' ' + (quoteData?.title || '')
     const matchPrice = textToCheck.match(/€\s*(\d+)/)
-    basePrice = matchPrice ? Number(matchPrice[1]) : 0
+    basePrice = matchPrice && Number(matchPrice[1]) !== 1800 ? Number(matchPrice[1]) : 0
   }
 
   const baseDays = Number(
