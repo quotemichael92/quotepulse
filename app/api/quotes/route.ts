@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const quoteId = searchParams.get('id')
+    const userEmail = searchParams.get('email') // <-- Parametro per filtrare per email
 
     if (quoteId) {
       const { data, error } = await supabase
@@ -21,10 +22,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, quote: data })
     }
 
-    const { data, error } = await supabase
+    // Costruiamo la query di base per la lista
+    let query = supabase
       .from('quotes')
       .select('*')
       .order('created_at', { ascending: false })
+
+    // Se viene passata un'email, filtriamo i preventivi di quell'utente
+    if (userEmail) {
+      query = query.eq('client_email', userEmail) // Oppure 'user_email' a seconda della colonna nel DB
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
     return NextResponse.json({ success: true, quotes: data })
