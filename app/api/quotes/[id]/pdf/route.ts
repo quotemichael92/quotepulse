@@ -22,10 +22,18 @@ export async function GET(
     return new NextResponse('Preventivo non trovato', { status: 404 });
   }
 
-  const basePrice = Number(quote.amount || quote.base_price || 0);
-  const projectDesc = quote.project_description || quote.projectName || "Sviluppo piattaforma web";
+  // Correzione priorità: cerchiamo prima base_price, poi total, evitando vecchi amount errati
+  const basePrice = Number(
+    quote.base_price ?? 
+    quote.basePrice ?? 
+    quote.price ?? 
+    quote.total ?? 
+    quote.amount ?? 
+    0
+  );
+
+  const projectDesc = quote.project_description || quote.projectDescription || quote.description || quote.projectName || "Sviluppo piattaforma web";
   
-  // Ricostruiamo la lista delle voci (Servizio Base + Opzioni)
   const items: { description: string; price: number }[] = [
     { description: projectDesc, price: basePrice }
   ];
@@ -33,11 +41,27 @@ export async function GET(
   if (Array.isArray(quote.options)) {
     quote.options.forEach((opt: any) => {
       if (typeof opt === 'string') {
-        items.push({ description: opt, price: 150 });
+        const lowerOpt = opt.toLowerCase();
+        const isZeroPrice = lowerOpt.includes('acconto') || lowerOpt.includes('nota') || lowerOpt.includes('vocale');
+        const matchPrice = opt.match(/€\s*(\d+)/);
+        const parsedPrice = matchPrice ? Number(matchPrice[1]) : (isZeroPrice ? 0 : 0);
+
+        items.push({ description: opt, price: parsedPrice });
       } else if (opt) {
+        const titleStr = (opt.title || opt.name || '').toLowerCase();
+        const isZeroPrice = titleStr.includes('acconto') || titleStr.includes('nota') || titleStr.includes('vocale');
+        
+        const rawPrice = opt.price ?? opt.cost ?? opt.amount ?? opt.value;
+        let extractedPrice = Number(rawPrice);
+
+        if (isNaN(extractedPrice) || rawPrice === undefined || rawPrice === null) {
+          const matchPrice = (opt.title || '').match(/€\s*(\d+)/);
+          extractedPrice = matchPrice ? Number(matchPrice[1]) : (isZeroPrice ? 0 : 0);
+        }
+
         items.push({ 
           description: opt.title || opt.name || 'Opzione aggiuntiva', 
-          price: Number(opt.price ?? opt.cost ?? 150) 
+          price: isZeroPrice ? 0 : extractedPrice 
         });
       }
     });
