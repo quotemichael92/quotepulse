@@ -19,7 +19,6 @@ export async function POST(
     const amount = formData.get('amount') as string;
     const clientNotes = formData.get('clientNotes') as string;
 
-    // Recupera i dati del preventivo dal database
     const { data: quote, error: fetchError } = await supabase
       .from('quotes')
       .select('*')
@@ -30,14 +29,11 @@ export async function POST(
       return NextResponse.json({ error: 'Preventivo non trovato' }, { status: 404 });
     }
 
-    // Aggiorna lo stato del preventivo nel database
     await supabase
       .from('quotes')
       .update({ status: 'accepted', client_notes: clientNotes })
       .eq('id', id);
 
-    // Prende l'email del professionista salvata nel record del preventivo 
-    // (sostituisci 'professional_email' con il nome esatto della colonna che usi nel tuo DB)
     const professionalEmail = quote.professional_email || quote.user_email || quote.creator_email;
 
     if (professionalEmail) {
@@ -52,6 +48,25 @@ export async function POST(
             <p><strong>Importo concordato:</strong> € ${amount}</p>
             ${clientNotes ? `<p><strong>Note lasciate dal cliente:</strong> ${clientNotes}</p>` : ''}
             <p style="margin-top: 30px; font-size: 12px; color: #666;">Notifica automatica generata da QuotePulse Deal Room.</p>
+          </div>
+        `,
+      });
+    }
+
+    if (quote.client_email) {
+      await resend.emails.send({
+        from: 'QuotePulse <onboarding@resend.dev>',
+        to: [quote.client_email],
+        subject: `Conferma accettazione - Proposta #${id.slice(0, 8)}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #111;">
+            <h2>Grazie per aver accettato la proposta! 🤝</h2>
+            <p>Gentile <strong>${quote.client_name || 'Cliente'}</strong>,</p>
+            <p>Confermiamo di aver registrato correttamente la tua accettazione per la proposta commerciale #${id.slice(0, 8)}.</p>
+            <p><strong>Importo concordato:</strong> € ${amount}</p>
+            ${clientNotes ? `<p><strong>Tue note:</strong> ${clientNotes}</p>` : ''}
+            <p>Il professionista ti ricontatterà presto per procedere con i prossimi passi.</p>
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">Notifica automatica generata da QuotePulse.</p>
           </div>
         `,
       });
