@@ -35,14 +35,14 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
     e.preventDefault()
 
     try {
-      const res = await fetch('/api/generate-quote', {
+      const res = await fetch('/api/quotes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName,
           clientEmail,
-          projectDescription,
-          amount: Number(amount)
+          description: projectDescription,
+          basePrice: Number(amount)
         })
       })
 
@@ -211,7 +211,7 @@ export default function DashboardClient({ initialQuotes }: { initialQuotes: any[
           </div>
           <button 
             type="submit" 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
           >
             Genera Preventivo Reale
           </button>
