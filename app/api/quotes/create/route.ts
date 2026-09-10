@@ -25,9 +25,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nome cliente obbligatorio' }, { status: 400 })
     }
 
-    // 1. Recupera l'utente autenticato dalla sessione corrente di Supabase
     const authHeader = req.headers.get('authorization')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader?.replace('Bearer ', ''))
+    let token = authHeader?.replace('Bearer ', '')
+
+    if (!token) {
+      const cookieHeader = req.headers.get('cookie') || ''
+      const match = cookieHeader.match(/sb-[\w-]+-auth-token(?:.0)?=([^;]+/) || cookieHeader.match(/sb-[a-z0-9]+-auth-token(?:.0)?=([^;]+)/)
+      // Fallback generico per qualunque cookie di autenticazione supabase
+      const generalMatch = cookieHeader.match(/sb-[^=]+=([^;]+)/)
+      const targetToken = match ? match[1] : (generalMatch ? generalMatch[1] : null)
+      
+      if (targetToken) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(targetToken))
+          token = parsed.access_token || parsed[0]
+        } catch {
+          token = targetToken
+        }
+      }
+    }
+
+    const { data: { user }, error: authError } = token 
+      ? await supabase.auth.getUser(token) 
+      : await supabase.auth.getUser()
 
     if (authError || !user || !user.email) {
       return NextResponse.json({ error: 'Utente non autorizzato o sessione scaduta.' }, { status: 401 })
@@ -36,10 +56,8 @@ export async function POST(req: Request) {
     const userEmail = user.email
     const userId = user.id
 
-    // 2. Verifica lo stato dell'abbonamento Pro su Stripe tramite la mail del professionista
     const isPro = await checkIsProPlan(userEmail)
 
-    // 3. Controlli per gli utenti del piano Starter (!isPro)
     if (!isPro) {
       const { count, error: countError } = await supabase
         .from('quotes')
@@ -48,31 +66,25 @@ export async function POST(req: Request) {
 
       if (!countError && count !== null && count >= 5) {
         return NextResponse.json(
-          { 
-            error: 'Hai raggiunto il limite di 5 preventivi attivi del piano Starter. Effettua l\'upgrade a Pro per creare Deal Room illimitate!' 
-          }, 
+          { error: 'Hai raggiunto il limite di 5 preventivi attivi del piano Starter. Effettua l\'upgrade a Pro!' }, 
           { status: 403 }
         )
       }
 
-      const hasProFeatures = videoPitch || audioPitch || removeBranding
-      if (hasProFeatures) {
+      if (videoPitch || audioPitch || removeBranding) {
         return NextResponse.json(
-          { 
-            error: 'Video pitch, note audio e rimozione del branding sono funzioni esclusive del piano Pro.' 
-          }, 
+          { error: 'Video pitch, note audio e rimozione del branding sono funzioni esclusive del piano Pro.' }, 
           { status: 403 }
         )
       }
     }
 
-    // 4. Salva il preventivo associandolo all'utente loggato (con user_id e user_email obbligatori)
     const { data, error } = await supabase
       .from('quotes')
       .insert([
         {
           user_id: userId,
-          user_email: userEmail, // <-- Fondamentale per soddisfare il vincolo NOT NULL e isolare i dati
+          user_email: userEmail,
           client_name: clientName,
           client_email: clientEmail,
           description: description,
