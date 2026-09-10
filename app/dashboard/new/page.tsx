@@ -110,6 +110,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/ai-suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ 
           clientName: clientName || 'Cliente', 
           projectDescription: projectDescription || 'Progetto generico' 
@@ -156,6 +157,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // <--- Fondamentale per passare i cookie di sessione al server ed evitare il 401
         body: JSON.stringify({
           clientName,
           clientEmail,
