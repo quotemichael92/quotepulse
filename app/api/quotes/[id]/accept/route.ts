@@ -18,9 +18,8 @@ export async function POST(
     
     const amount = formData.get('amount') as string;
     const clientNotes = formData.get('clientNotes') as string;
-    const clientEmailForm = formData.get('clientEmail') as string;
 
-    // Recupera i dati del preventivo dal database per avere le info del cliente
+    // Recupera i dati del preventivo dal database
     const { data: quote, error: fetchError } = await supabase
       .from('quotes')
       .select('*')
@@ -31,28 +30,28 @@ export async function POST(
       return NextResponse.json({ error: 'Preventivo non trovato' }, { status: 404 });
     }
 
-    // Aggiorna lo stato del preventivo nel database (es. accettato)
+    // Aggiorna lo stato del preventivo nel database
     await supabase
       .from('quotes')
       .update({ status: 'accepted', client_notes: clientNotes })
       .eq('id', id);
 
-    // Determina l'email del destinatario (dal DB o dal form)
-    const recipientEmail = quote.client_email || quote.clientEmail || clientEmailForm;
+    // Prende l'email del professionista salvata nel record del preventivo 
+    // (sostituisci 'professional_email' con il nome esatto della colonna che usi nel tuo DB)
+    const professionalEmail = quote.professional_email || quote.user_email || quote.creator_email;
 
-    if (recipientEmail) {
-      // Invio della notifica email al cliente tramite Resend
+    if (professionalEmail) {
       await resend.emails.send({
         from: 'QuotePulse <onboarding@resend.dev>',
-        to: [recipientEmail],
-        subject: `Preventivo Accettato - #${id.slice(0, 8)}`,
+        to: [professionalEmail],
+        subject: `🎉 Nuovo preventivo accettato! #${id.slice(0, 8)}`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; color: #111;">
-            <h2>Preventivo Accettato con Successo! 🎉</h2>
-            <p>Gentile <strong>${quote.client_name || 'Cliente'}</strong>, abbiamo registrato correttamente l'accettazione della proposta commerciale.</p>
-            <p><strong>Importo totale:</strong> € ${amount}</p>
-            ${clientNotes ? `<p><strong>Tue note:</strong> ${clientNotes}</p>` : ''}
-            <p style="margin-top: 30px; font-size: 12px; color: #666;">Generato automaticamente tramite QuotePulse Deal Room.</p>
+            <h2>Il cliente ha accettato il preventivo! 🚀</h2>
+            <p>Il cliente <strong>${quote.client_name || 'Cliente'}</strong> ha appena firmato e accettato la proposta commerciale #${id.slice(0, 8)}.</p>
+            <p><strong>Importo concordato:</strong> € ${amount}</p>
+            ${clientNotes ? `<p><strong>Note lasciate dal cliente:</strong> ${clientNotes}</p>` : ''}
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">Notifica automatica generata da QuotePulse Deal Room.</p>
           </div>
         `,
       });
