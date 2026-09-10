@@ -17,6 +17,7 @@ interface Quote {
   amount: number;
   status: 'PENDING' | 'VIEWED' | 'SIGNED';
   createdAt: string;
+  professionalEmail?: string;
 }
 
 function DashboardContent() {
@@ -50,21 +51,33 @@ function DashboardContent() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const userId = user?.id;
+        const userEmail = user?.email;
 
-        const url = userId ? `/api/quotes?user_id=${userId}` : '/api/quotes';
+        const url = userId 
+          ? `/api/quotes?user_id=${userId}&email=${encodeURIComponent(userEmail || '')}` 
+          : '/api/quotes';
+          
         const res = await fetch(url);
         if (!res.ok) throw new Error('Errore nel recupero dei preventivi');
         const data = await res.json();
         
         if (data.quotes) {
-          const formattedQuotes = data.quotes.map((q: any) => ({
+          let formattedQuotes = data.quotes.map((q: any) => ({
             id: q.id,
             clientName: q.client_name || 'Cliente',
             clientEmail: q.client_email || '',
             amount: q.total_amount ?? q.amount ?? 0,
             status: q.status || 'PENDING',
             createdAt: q.created_at || new Date().toISOString(),
+            professionalEmail: q.professional_email || q.user_email || '',
           }));
+
+          if (userEmail) {
+            formattedQuotes = formattedQuotes.filter((q: any) => 
+              q.professionalEmail ? q.professionalEmail === userEmail : true
+            );
+          }
+
           setQuotes(formattedQuotes);
           setLoading(false);
           return;
@@ -73,17 +86,7 @@ function DashboardContent() {
         console.error('Errore nel recupero API:', err);
       }
 
-      const localQuotes = localStorage.getItem('quotepulse_deals');
-      if (localQuotes) {
-        try {
-          setQuotes(JSON.parse(localQuotes));
-        } catch (e) {
-          setQuotes([]);
-        }
-      } else {
-        setQuotes([]);
-      }
-      
+      setQuotes([]);
       setLoading(false);
     };
 

@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const quoteId = searchParams.get('id');
-    const userId = searchParams.get('user_id'); // ID utente passato dalla dashboard
+    const userId = searchParams.get('user_id');
+    const userEmail = searchParams.get('email'); // Aggiungiamo il controllo via email
 
     if (quoteId) {
       const { data, error } = await supabase
@@ -29,8 +30,10 @@ export async function GET(request: Request) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Filtriamo rigorosamente per l'utente proprietario tramite user_id
-    if (userId) {
+    // Filtriamo rigorosamente: se abbiamo l'email filtriamo per professional_email, altrimenti per user_id
+    if (userEmail) {
+      query = query.eq('professional_email', userEmail);
+    } else if (userId) {
       query = query.eq('user_id', userId);
     }
 
