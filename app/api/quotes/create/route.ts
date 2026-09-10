@@ -30,10 +30,8 @@ export async function POST(req: Request) {
 
     if (!token) {
       const cookieHeader = req.headers.get('cookie') || ''
-      const match = cookieHeader.match(/sb-[\w-]+-auth-token(?:.0)?=([^;]+/) || cookieHeader.match(/sb-[a-z0-9]+-auth-token(?:.0)?=([^;]+)/)
-      // Fallback generico per qualunque cookie di autenticazione supabase
-      const generalMatch = cookieHeader.match(/sb-[^=]+=([^;]+)/)
-      const targetToken = match ? match[1] : (generalMatch ? generalMatch[1] : null)
+      const match = cookieHeader.match(/sb-[a-z0-9]+-auth-token(?:.0)?=([^;]+)/)
+      const targetToken = match ? match[1] : null
       
       if (targetToken) {
         try {
