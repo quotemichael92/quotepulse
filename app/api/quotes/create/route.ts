@@ -27,7 +27,6 @@ export async function POST(req: Request) {
 
     // 1. Recupera l'utente autenticato dalla sessione corrente di Supabase
     const authHeader = req.headers.get('authorization')
-    // Se usi i cookie di Supabase o il token Bearer, ricaviamo l'utente:
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader?.replace('Bearer ', ''))
 
     if (authError || !user || !user.email) {
@@ -42,11 +41,10 @@ export async function POST(req: Request) {
 
     // 3. Controlli per gli utenti del piano Starter (!isPro)
     if (!isPro) {
-      // CONTROLLO A: Limite di 5 preventivi attivi (filtrato specificamente per questo utente)
       const { count, error: countError } = await supabase
         .from('quotes')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId) // <-- Fondamentale: conta solo i suoi preventivi
+        .eq('user_id', userId)
 
       if (!countError && count !== null && count >= 5) {
         return NextResponse.json(
@@ -57,7 +55,6 @@ export async function POST(req: Request) {
         )
       }
 
-      // CONTROLLO B: Blocco delle funzionalità Pro
       const hasProFeatures = videoPitch || audioPitch || removeBranding
       if (hasProFeatures) {
         return NextResponse.json(
@@ -69,12 +66,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Salva il preventivo associandolo all'utente loggato
+    // 4. Salva il preventivo associandolo all'utente loggato (con user_id e user_email obbligatori)
     const { data, error } = await supabase
       .from('quotes')
       .insert([
         {
           user_id: userId,
+          user_email: userEmail, // <-- Fondamentale per soddisfare il vincolo NOT NULL e isolare i dati
           client_name: clientName,
           client_email: clientEmail,
           description: description,
