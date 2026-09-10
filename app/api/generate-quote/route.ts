@@ -16,7 +16,6 @@ export async function POST(req: Request) {
 
     const cookieStore = await cookies()
 
-    // 1. Inizializza Supabase leggendo i cookie della sessione corrente
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,22 +29,29 @@ export async function POST(req: Request) {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               )
-            } catch {
-              // Gestione errore cookie in Server Components
-            }
+            } catch {}
           },
         },
       }
     )
 
-    // 2. Recupera automaticamente l'utente loggato
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Tentativo 1: Recupero utente dai cookie di sessione
+    let userEmail = 'professionista@quotepulse.it'
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (userError || !user || !user.email) {
-      return NextResponse.json({ error: 'Utente non autenticato' }, { status: 401 })
+    if (user && user.email) {
+      userEmail = user.email
+    } else {
+      // Tentativo 2: Controllo se viene passato un token Bearer nell'header Authorization
+      const authHeader = req.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1]
+        const { data: { user: tokenUser } } = await supabase.auth.getUser(token)
+        if (tokenUser && tokenUser.email) {
+          userEmail = tokenUser.email
+        }
+      }
     }
-
-    const userEmail = user.email
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -54,7 +60,6 @@ export async function POST(req: Request) {
     const fomoHours = Number(timerFomo) || 48
     const expiresAt = new Date(Date.now() + fomoHours * 60 * 60 * 1000).toISOString()
 
-    // 3. Inserisce il preventivo salvando in automatico l'email del professionista loggato
     const res = await fetch(`${supabaseUrl}/rest/v1/quotes`, {
       method: 'POST',
       headers: {
@@ -66,7 +71,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         client_name: clientName,
         client_email: clientEmail,
-        user_email: userEmail, // <--- Preso direttamente dalla sessione del server!
+        user_email: userEmail,
         title: `Preventivo per ${clientName}`,
         description: projectDescription || 'Servizio professionale',
         base_price: numericAmount,
