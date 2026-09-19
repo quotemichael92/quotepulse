@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkIsProPlan } from '@/lib/subscription'
+import { sendQuoteEmail } from '@/lib/resend'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -103,6 +104,21 @@ export async function POST(req: Request) {
     }
 
     const newQuote = data?.[0]
+
+    // Invia l'email automaticamente se è stata inserita l'email del cliente
+    if (clientEmail && newQuote) {
+      try {
+        await sendQuoteEmail({
+          to: clientEmail,
+          clientName: clientName,
+          quoteNumber: newQuote.id.toString(),
+          pdfUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://quotepulse.it'}/preview/${newQuote.id}`
+        })
+      } catch (emailErr) {
+        console.error('Errore durante l’invio dell’email di preventivo:', emailErr)
+      }
+    }
+
     return NextResponse.json({ success: true, quote: newQuote })
 
   } catch (err: any) {
