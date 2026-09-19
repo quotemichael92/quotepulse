@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Utente non autorizzato o sessione scaduta.' }, { status: 401 })
     }
 
-    const userEmail = user.email // <-- Questa è l'email di chi si è registrato all'app
+    const userEmail = user.email 
     const userId = user.id
 
     const isPro = await checkIsProPlan(userEmail)
@@ -104,7 +104,9 @@ export async function POST(req: Request) {
     }
 
     const newQuote = data?.[0]
-    const previewUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://quotepulse.it'}/preview/${newQuote.id}`
+    
+    // Dominio forzato in modo sicuro per la produzione
+    const previewUrl = `https://quotepulse.it/preview/${newQuote.id}`
 
     // 1. Invia l'email al cliente
     if (clientEmail && newQuote) {
