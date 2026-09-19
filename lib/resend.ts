@@ -11,11 +11,13 @@ interface SendQuoteEmailParams {
 
 export async function sendQuoteEmail({ to, clientName, quoteNumber, pdfUrl }: SendQuoteEmailParams) {
   try {
-    // Sostituisce forzatamente qualsiasi riferimento a localhost o http con il dominio di produzione https://quotepulse.it
-    let finalUrl = pdfUrl;
-    if (finalUrl) {
-      finalUrl = finalUrl.replace(/^http:\/\/localhost:\d+/, 'https://quotepulse.it');
-      finalUrl = finalUrl.replace(/^http:\/\/quotepulse\.it/, 'https://quotepulse.it');
+    // Costruisce direttamente il link di produzione in modo blindato, usando l'ID del preventivo
+    let finalUrl = `https://quotepulse.it/preview/${quoteNumber}`;
+    
+    if (pdfUrl) {
+      const parts = pdfUrl.split('/');
+      const extractedId = parts.pop() || quoteNumber;
+      finalUrl = `https://quotepulse.it/preview/${extractedId}`;
     }
 
     const { data, error } = await resend.emails.send({
