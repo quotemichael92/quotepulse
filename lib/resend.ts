@@ -11,6 +11,13 @@ interface SendQuoteEmailParams {
 
 export async function sendQuoteEmail({ to, clientName, quoteNumber, pdfUrl }: SendQuoteEmailParams) {
   try {
+    // Sostituisce forzatamente qualsiasi riferimento a localhost o http con il dominio di produzione https://quotepulse.it
+    let finalUrl = pdfUrl;
+    if (finalUrl) {
+      finalUrl = finalUrl.replace(/^http:\/\/localhost:\d+/, 'https://quotepulse.it');
+      finalUrl = finalUrl.replace(/^http:\/\/quotepulse\.it/, 'https://quotepulse.it');
+    }
+
     const { data, error } = await resend.emails.send({
       from: 'QuotePulse <noreply@quotepulse.it>',
       to: [to],
@@ -19,7 +26,7 @@ export async function sendQuoteEmail({ to, clientName, quoteNumber, pdfUrl }: Se
         <div style="font-family: Arial, sans-serif; color: #333;">
           <h2>Ciao ${clientName},</h2>
           <p>È stato generato un nuovo preventivo per te (Rif. #${quoteNumber}).</p>
-          ${pdfUrl ? `<p>Puoi visualizzare e scaricare il documento al seguente link:</p><a href="${pdfUrl}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Apri Preventivo</a>` : ''}
+          ${finalUrl ? `<p>Puoi visualizzare e scaricare il documento al seguente link:</p><a href="${finalUrl}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Apri Preventivo</a>` : ''}
           <p style="margin-top: 30px; font-size: 12px; color: #666;">Generato con QuotePulse</p>
         </div>
       `,
