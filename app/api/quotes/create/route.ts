@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Utente non autorizzato o sessione scaduta.' }, { status: 401 })
     }
 
-    const userEmail = user.email
+    const userEmail = user.email // <-- Questa è l'email di chi si è registrato all'app
     const userId = user.id
 
     const isPro = await checkIsProPlan(userEmail)
@@ -104,18 +104,33 @@ export async function POST(req: Request) {
     }
 
     const newQuote = data?.[0]
+    const previewUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://quotepulse.it'}/preview/${newQuote.id}`
 
-    // Invia l'email automaticamente se è stata inserita l'email del cliente
+    // 1. Invia l'email al cliente
     if (clientEmail && newQuote) {
       try {
         await sendQuoteEmail({
           to: clientEmail,
           clientName: clientName,
           quoteNumber: newQuote.id.toString(),
-          pdfUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://quotepulse.it'}/preview/${newQuote.id}`
+          pdfUrl: previewUrl
         })
       } catch (emailErr) {
-        console.error('Errore durante l’invio dell’email di preventivo:', emailErr)
+        console.error('Errore invio email al cliente:', emailErr)
+      }
+    }
+
+    // 2. Invia la copia di notifica all'utente registrato all'applicazione
+    if (userEmail && newQuote) {
+      try {
+        await sendQuoteEmail({
+          to: userEmail,
+          clientName: `[COPIA PREVENTIVO] ${clientName}`,
+          quoteNumber: newQuote.id.toString(),
+          pdfUrl: previewUrl
+        })
+      } catch (userEmailErr) {
+        console.error('Errore invio email di copia all\'utente:', userEmailErr)
       }
     }
 
