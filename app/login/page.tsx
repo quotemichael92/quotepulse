@@ -19,9 +19,20 @@ export default function LoginPage() {
       if (error) alert(error.message)
       else alert('Registrazione completata! Effettua il login.')
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) alert(error.message)
-      else window.location.href = '/dashboard'
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        alert(error.message)
+      } else {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', data.user.id)
+          .single()
+
+        const hasActiveSub = subscription && (subscription.status === 'active' || subscription.status === 'trialing')
+        
+        window.location.href = hasActiveSub ? '/dashboard' : '/pricing'
+      }
     }
     setLoading(false)
   }
