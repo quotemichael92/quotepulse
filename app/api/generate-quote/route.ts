@@ -99,13 +99,13 @@ export async function POST(req: Request) {
     }
 
     const quoteId = data[0].id
-    const dealRoomUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/p/${quoteId}`
+    const dealRoomUrl = `https://quotepulse.it/p/${quoteId}`
 
     // Invio della email al cliente tramite Resend
     if (clientEmail) {
       try {
         await resend.emails.send({
-          from: 'QuotePulse <onboarding@resend.dev>', // Sostituisci con il tuo dominio verificato se configurato
+          from: 'QuotePulse <noreply@quotepulse.it>',
           to: [clientEmail],
           subject: `La tua Deal Room è pronta: Proposta per ${clientName}`,
           html: `
@@ -122,7 +122,6 @@ export async function POST(req: Request) {
         })
       } catch (emailErr) {
         console.error('Errore invio email Resend:', emailErr)
-        // Non blocchiamo la risposta se l'invio mail fallisce, ma lo loggiamo
       }
     }
 
