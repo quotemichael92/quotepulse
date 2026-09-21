@@ -23,6 +23,7 @@ export default function LoginPage() {
       if (error) {
         alert(error.message)
       } else {
+        // Controlliamo l'abbonamento interrogando la tabella
         const { data: subscription } = await supabase
           .from('subscriptions')
           .select('status')
