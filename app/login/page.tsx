@@ -14,28 +14,34 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) alert(error.message)
-      else alert('Registrazione completata! Effettua il login.')
-    } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        alert(error.message)
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password })
+        if (error) {
+          alert(error.message)
+        } else {
+          alert('Registrazione completata! Effettua il login.')
+        }
       } else {
-        // Controlliamo l'abbonamento interrogando la tabella
-        const { data: subscription } = await supabase
-          .from('subscriptions')
-          .select('status')
-          .eq('user_id', data.user.id)
-          .single()
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+          alert(error.message)
+        } else if (data?.user) {
+          const { data: subscription } = await supabase
+            .from('subscriptions')
+            .select('status')
+            .eq('user_id', data.user.id)
+            .maybeSingle()
 
-        const hasActiveSub = subscription && (subscription.status === 'active' || subscription.status === 'trialing')
-        
-        window.location.href = hasActiveSub ? '/dashboard' : '/pricing'
+          const hasActiveSub = subscription && (subscription.status === 'active' || subscription.status === 'trialing')
+          window.location.href = hasActiveSub ? '/dashboard' : '/pricing'
+        }
       }
+    } catch (err: any) {
+      alert('Errore imprevisto durante l\'accesso.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
