@@ -41,10 +41,10 @@ export default function Home() {
           <span className="font-extrabold tracking-tight text-lg bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">QuotePulse</span>
         </div>
         <button 
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push('/login')}
           className="text-xs md:text-sm bg-[#111827] hover:bg-[#1f2937] border border-gray-800 px-4 py-2 rounded-xl transition text-gray-300 font-medium shadow-md cursor-pointer"
         >
-          Accedi alla Dashboard →
+          Accedi
         </button>
       </div>
 
