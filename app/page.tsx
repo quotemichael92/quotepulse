@@ -1,186 +1,200 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react'
+import { createClient } from '@/app/utils/supabase/client'
 
-export default function Home() {
-  const router = useRouter();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nome, setNome] = useState('')
+  const [cognome, setCognome] = useState('')
+  const [partitaIva, setPartitaIva] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
+  
+  const supabase = createClient()
 
-  const handleCheckout = async (priceId: string, planName: string) => {
-    setLoadingPlan(planName);
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
     try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              nome,
+              cognome,
+              partita_iva: partitaIva,
+            }
+          }
+        })
+
+        if (error) {
+          alert(error.message)
+        } else {
+          alert('Registrazione completata con successo! Effettua ora il login.')
+          setIsSignUp(false)
+        }
       } else {
-        setLoadingPlan(null);
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (error) {
+          alert(error.message)
+        } else if (data?.user) {
+          const { data: subscription, error: subError } = await supabase
+            .from('subscriptions')
+            .select('status')
+            .eq('user_id', data.user.id)
+            .maybeSingle()
+
+          if (subError) {
+            console.error('Errore nel recupero della sottoscrizione:', subError)
+          }
+
+          const hasActiveSub = subscription && (subscription.status === 'active' || subscription.status === 'trialing')
+          
+          if (hasActiveSub) {
+            window.location.href = '/dashboard'
+          } else {
+            window.location.href = '/'
+          }
+        }
       }
-    } catch (err) {
-      console.error('Errore durante il checkout:', err);
-      setLoadingPlan(null);
+    } catch (err: any) {
+      console.error('Errore imprevisto durante l’autenticazione:', err)
+      alert('Si è verificato un errore imprevisto durante l’accesso.')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <main className="min-h-screen bg-[#07090e] text-white flex flex-col items-center justify-between p-6 md:p-12 relative overflow-hidden">
+    <main className="min-h-screen bg-[#07090e] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
       
-      {/* Sfumature decorative di sfondo */}
+      {/* Sfumature decorative di sfondo in stile QuotePulse */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-600/15 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
 
-      {/* Header / Nav */}
-      <div className="w-full max-w-5xl flex justify-between items-center z-10 mb-8">
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></span>
-          <span className="font-extrabold tracking-tight text-lg bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">QuotePulse</span>
-        </div>
-        <button 
-          onClick={() => router.push('/login')}
-          className="text-xs md:text-sm bg-[#111827] hover:bg-[#1f2937] border border-gray-800 px-4 py-2 rounded-xl transition text-gray-300 font-medium shadow-md cursor-pointer"
-        >
-          Accedi
-        </button>
-      </div>
-
-      {/* Hero Section */}
-      <div className="w-full max-w-4xl text-center z-10 space-y-4 mb-12">
-        <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-semibold text-purple-400">
-          🚀 Next-Gen Deal Rooms per Freelance & Agenzie
-        </div>
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-          QuotePulse Subscriptions
-        </h1>
-        <p className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto">
-          Scegli il piano ideale per gestire i tuoi preventivi e le tue trattative con i clienti.
-        </p>
-      </div>
-
-      {/* Pricing Cards Grid */}
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 z-10 mb-16">
+      <div className="w-full max-w-md bg-[#111827]/80 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative z-10 my-8">
         
-        {/* Card Starter */}
-        <div className="bg-[#111827]/80 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 flex flex-col justify-between shadow-2xl hover:border-gray-700 transition duration-300">
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-white">Starter</h2>
-              <span className="text-xs bg-gray-800 text-gray-300 px-3 py-1 rounded-full font-mono">Base</span>
-            </div>
-            <p className="text-gray-400 text-sm mb-6">Ideale per professionisti che vogliono digitalizzare i propri preventivi.</p>
-            <div className="flex items-baseline gap-1 mb-8">
-              <span className="text-4xl md:text-5xl font-extrabold font-mono text-white">€29</span>
-              <span className="text-gray-400 text-sm">/mese</span>
-            </div>
-
-            <ul className="space-y-4 text-sm text-gray-300 mb-8">
-              <li className="flex items-start gap-2.5">
-                <span className="text-purple-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Preventivi interattivi:</strong> Invia preventivi moderni che i clienti possono aprire e firmare al volo.
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-purple-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Firma digitale integrata:</strong> Il cliente firma direttamente online dallo schermo (smartphone o PC).
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-purple-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Tracciamento aperture:</strong> Vedi quando il cliente apre il preventivo e lo guarda.
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5 text-gray-500">
-                <span className="font-bold mt-0.5">✕</span>
-                <div>
-                  <strong className="text-gray-400">Note video/audio personalizzate</strong> (non incluso)
-                </div>
-              </li>
-            </ul>
+        <div className="text-center space-y-2 mb-6">
+          <div className="flex justify-center items-center gap-2 mb-2">
+            <span className="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></span>
+            <span className="font-extrabold tracking-tight text-lg bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              QuotePulse
+            </span>
           </div>
-
-          <button
-            onClick={() => handleCheckout('price_1TyBxsGc2QPdKxT7HMWzVJHs', 'Starter')}
-            disabled={loadingPlan !== null}
-            className="w-full bg-[#1f2937] hover:bg-gray-700 text-white font-semibold py-3.5 rounded-2xl transition duration-200 border border-gray-700 text-sm shadow-lg disabled:opacity-50 cursor-pointer"
-          >
-            {loadingPlan === 'Starter' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Starter'}
-          </button>
+          <h1 className="text-2xl font-bold text-white">
+            {isSignUp ? 'Crea un account' : 'Accedi a QuotePulse'}
+          </h1>
+          <p className="text-gray-400 text-sm">
+            {isSignUp ? 'Inserisci i tuoi dati anagrafici per iniziare' : 'Inserisci le tue credenziali per continuare'}
+          </p>
         </div>
 
-        {/* Card Advanced */}
-        <div className="bg-gradient-to-b from-[#191029] to-[#111827] backdrop-blur-xl border-2 border-purple-500/60 rounded-3xl p-8 pt-10 flex flex-col justify-between shadow-2xl relative hover:border-purple-400 transition duration-300">
+        <form onSubmit={handleAuth} className="space-y-4">
           
-          <div className="absolute -top-3.5 right-8 bg-purple-600 text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-lg z-10">
-            ⭐ Consigliato
+          {isSignUp && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    required={isSignUp}
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+                    placeholder="Mario"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                    Cognome
+                  </label>
+                  <input
+                    type="text"
+                    required={isSignUp}
+                    value={cognome}
+                    onChange={(e) => setCognome(e.target.value)}
+                    className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+                    placeholder="Rossi"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                  Partita IVA / Codice Fiscale
+                </label>
+                <input
+                  type="text"
+                  required={isSignUp}
+                  value={partitaIva}
+                  onChange={(e) => setPartitaIva(e.target.value)}
+                  className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+                  placeholder="P.IVA o Codice Fiscale"
+                />
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+              placeholder="tua@email.com"
+            />
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-purple-200">Advanced</h2>
-              <span className="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full font-mono border border-purple-500/30">Completo</span>
-            </div>
-            <p className="text-gray-400 text-sm mb-6">Per chi gestisce più trattative e vuole strumenti avanzati.</p>
-            <div className="flex items-baseline gap-1 mb-8">
-              <span className="text-4xl md:text-5xl font-extrabold font-mono text-purple-400">€59</span>
-              <span className="text-gray-400 text-sm">/mese</span>
-            </div>
-
-            <ul className="space-y-4 text-sm text-gray-200 mb-8">
-              <li className="flex items-start gap-2.5">
-                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Trattative illimitate:</strong> Gestisci tutti i preventivi che desideri in contemporanea senza restrizioni.
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Firma digitale e messaggi multimediali:</strong> Includi note vocali o video di presentazione per illustrare i dettagli del preventivo.
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Protezione richieste extra:</strong> Strumenti e clausole integrate per prevenire modifiche non concordate al progetto.
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                <div>
-                  <strong className="text-white">Personalizzazione totale (White-Label):</strong> Rimuovi il branding della piattaforma per valorizzare esclusivamente la tua identità professionale.
-                </div>
-              </li>
-            </ul>
+            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+              placeholder="••••••••"
+            />
           </div>
 
           <button
-            onClick={() => handleCheckout('price_1TyC2LGc2QPdKxT7CPKm6oPB', 'Advanced')}
-            disabled={loadingPlan !== null}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition duration-200 text-sm disabled:opacity-50 cursor-pointer"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/35 transition duration-200 text-sm disabled:opacity-50 cursor-pointer mt-2"
           >
-            {loadingPlan === 'Advanced' ? 'Reindirizzamento a Stripe...' : 'Abbonati a Advanced'}
+            {loading ? 'Elaborazione in corso...' : isSignUp ? 'Registrati' : 'Accedi'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-xs text-gray-400 hover:text-purple-400 transition cursor-pointer"
+          >
+            {isSignUp ? 'Hai già un account? Accedi' : 'Non hai un account? Registrati'}
           </button>
         </div>
 
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-xs text-gray-500 z-10 space-y-2">
-        <p>
-          Hai già un account o vuoi registrarti?{' '}
-          <a href="/login" className="text-purple-400 hover:underline font-medium">
-            Iscriviti o fai il login
-          </a>
-        </p>
-        <p>© 2026 QuotePulse. Tutti i diritti riservati. Protetto da crittografia end-to-end.</p>
-      </div>
     </main>
-  );
+  )
 }
