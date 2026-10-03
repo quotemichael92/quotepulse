@@ -172,8 +172,14 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <div className="text-center text-xs text-gray-500 z-10">
-        © 2026 QuotePulse. Tutti i diritti riservati. Protetto da crittografia end-to-end.
+      <div className="text-center text-xs text-gray-500 z-10 space-y-2">
+        <p>
+          Hai già un account o vuoi registrarti?{' '}
+          <a href="/login" className="text-purple-400 hover:underline font-medium">
+            Iscriviti o fai il login
+          </a>
+        </p>
+        <p>© 2026 QuotePulse. Tutti i diritti riservati. Protetto da crittografia end-to-end.</p>
       </div>
     </main>
   );
