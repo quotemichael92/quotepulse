@@ -16,11 +16,17 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          }
+        })
         if (error) {
           alert(error.message)
         } else {
-          alert('Registrazione completata! Effettua il login.')
+          alert('Registrazione completata! Controlla la tua email per confermare l\'account.')
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
