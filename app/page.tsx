@@ -6,9 +6,6 @@ import { createClient } from '@/app/utils/supabase/client'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [nome, setNome] = useState('')
-  const [cognome, setCognome] = useState('')
-  const [partitaIva, setPartitaIva] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   
@@ -24,18 +21,14 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            data: {
-              nome,
-              cognome,
-              partita_iva: partitaIva,
-            }
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           }
         })
 
         if (error) {
           alert(error.message)
         } else {
-          alert('Registrazione completata con successo! Effettua ora il login.')
+          alert('Registrazione completata con successo! Controlla la tua email per confermare l\'account.')
           setIsSignUp(false)
         }
       } else {
@@ -94,59 +87,11 @@ export default function LoginPage() {
             {isSignUp ? 'Crea un account' : 'Accedi a QuotePulse'}
           </h1>
           <p className="text-gray-400 text-sm">
-            {isSignUp ? 'Inserisci i tuoi dati anagrafici per iniziare' : 'Inserisci le tue credenziali per continuare'}
+            {isSignUp ? 'Inserisci le tue credenziali per registrarti' : 'Inserisci le tue credenziali per continuare'}
           </p>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
-          
-          {isSignUp && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                    Nome
-                  </label>
-                  <input
-                    type="text"
-                    required={isSignUp}
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
-                    placeholder="Mario"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                    Cognome
-                  </label>
-                  <input
-                    type="text"
-                    required={isSignUp}
-                    value={cognome}
-                    onChange={(e) => setCognome(e.target.value)}
-                    className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
-                    placeholder="Rossi"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                  Partita IVA / Codice Fiscale
-                </label>
-                <input
-                  type="text"
-                  required={isSignUp}
-                  value={partitaIva}
-                  onChange={(e) => setPartitaIva(e.target.value)}
-                  className="w-full bg-[#07090e] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 transition"
-                  placeholder="P.IVA o Codice Fiscale"
-                />
-              </div>
-            </>
-          )}
-
           <div>
             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
               Email
